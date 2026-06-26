@@ -2,6 +2,10 @@ zhipuai>=2.1.0
 chromadb>=0.5.0
 python-dotenv>=1.0.0
 sniffio>=1.3.0  # zhipuai 的间接依赖，部分版本未正确声明
+
 # ---- Lesson 02 起新增 ----
 matplotlib>=3.7.0   # 画图：相似度热力图、向量降维散点图
 scikit-learn>=1.3.0 # 降维：PCA 把高维向量投影到 2D 平面可视化
+
+# ---- Lesson 04 起新增 ----
+langchain-text-splitters>=0.1.0  # 文档切块工具（按语义分隔符智能切分）
