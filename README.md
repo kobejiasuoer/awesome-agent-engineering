@@ -1,9 +1,9 @@
-# RAG 渐进式学习课程 📚
+# LLM 应用实战课程 📚
 
-这是一套**从零开始、系统理解 RAG（检索增强生成）原理**的实战课程。
-面向**会 Python 但没接触过大模型**的开发者，用可运行的代码 + 原理讲解，一步步带你搞懂 RAG。
+这是一套**从零开始、系统掌握大模型应用开发**的实战课程，覆盖 **RAG、Agent、框架工程化** 三大方向。
+面向**会 Python 但刚接触大模型**的开发者，用可运行的代码 + 原理讲解，一步步从原理手写到框架落地。
 
-> 技术栈：智谱 GLM-4 + embedding-3 · Chroma 本地向量库 · Python
+> 技术栈：智谱 GLM-4 + embedding-3 · Chroma 本地向量库 · LangChain + LangGraph · Python
 
 ---
 
@@ -21,7 +21,7 @@
 
 ---
 
-## 📚 课程一：RAG 渐进式学习（共 9 节课）
+## 📚 课程一：RAG 手写课程（共 9 节课）
 
 按 RAG 真实数据流顺序，每课加一个环节：
 
@@ -36,6 +36,46 @@
 | 07 | [Query 改写](rag-lessons/07_query_rewrite/) | HyDE、多查询展开 |
 | 08 | [RAG 评估](rag-lessons/08_evaluation/) | RAGAS 三维指标 |
 | 09 | [工程化：毕业作品](rag-lessons/09_engineering/) | 交互式问答助手，集成全部技术 |
+
+> 已完成全部 **9 节课** 🎉。每课都包含原理讲解 + 可运行代码 + 练习。
+
+---
+
+## 🤖 课程二：Agent 手写课程（共 9 节课）
+
+按 Agent 能力层层叠加，每课给 Agent 加一项能力（工具→循环→记忆→规划→协作）：
+
+| # | 课程 | 你会学到 |
+|---|------|----------|
+| 01 | [认识 Agent：从问答到行动](agent-lessons/01_what_is_agent/) | 跑通最小 Agent，建立"LLM + 工具 + 决策"认知 |
+| 02 | [Function Calling 深入](agent-lessons/02_function_calling/) | 搞懂 function calling 机制，手写通用工具调度器 |
+| 03 | [ReAct：思考-行动-观察循环](agent-lessons/03_react_loop/) | 手写最小 ReAct loop（不用任何框架，面试核心） |
+| 04 | [多工具与工具设计](agent-lessons/04_tool_design/) | 5+ 个工具的取舍，工具描述好坏如何影响选择 |
+| 05 | [记忆：记住上下文](agent-lessons/05_memory/) | 多轮对话、上下文窗口限制与处理策略 |
+| 06 | [规划与任务分解](agent-lessons/06_planning/) | Plan-and-Execute 范式，对比 ReAct 的适用场景 |
+| 07 | [Agentic RAG：Agent + RAG](agent-lessons/07_agentic_rag/) | 把 RAG 包装成工具，让 Agent 自主决定检索时机 |
+| 08 | [多智能体协作](agent-lessons/08_multi_agent/) | 多个 Agent 各司其职、分工协同完成复杂任务 |
+| 09 | [毕业项目：智能研究助手](agent-lessons/09_capstone/) | 联网搜索 + 结构化研究报告（简历级项目） |
+
+> 已完成全部 **9 节课** 🎉。每课都包含原理讲解 + 可运行代码 + 练习。
+
+---
+
+## 🔧 课程三：框架进阶课程（共 9 节课）
+
+把前两门课手写过的东西，用 **LangChain / LangGraph** 翻译成框架版，每课做「手写版 vs 框架版」对比：
+
+| # | 课程 | 你会学到 |
+|---|------|----------|
+| 01 | [LCEL 与框架全景](framework-lessons/01_lcel_overview/) | 手写 RAG vs LCEL 版对比，看清框架替你做了什么 |
+| 02 | [三件套：Models + Prompts + Parsers](framework-lessons/02_models_prompts_parsers/) | 调模型、拼提示词、解析输出的标准化积木 |
+| 03 | [文档处理：Loaders + Splitters + VectorStores](framework-lessons/03_documents_splitter_vectorstore/) | 数据进入环节的工程化流水线 |
+| 04 | [Retrievers + RAG Chain](framework-lessons/04_retrievers_rag_chain/) | 把积木用 `\|` 拼成完整的 RAG 链 |
+| 05 | [高级检索工程化](framework-lessons/05_advanced_retrieval/) | Ensemble + MultiQuery，框架真正省力的地方 |
+| 06 | [LangGraph 基础](framework-lessons/06_langgraph_basics/) | StateGraph 重写 ReAct（从 LangChain 转 LangGraph 的转折点） |
+| 07 | [框架级 Agent](framework-lessons/07_tools_and_agents/) | `@tool` 装饰器 + `create_agent`，几行搞定手写几十行 |
+| 08 | [状态、记忆与人机协作](framework-lessons/08_state_memory_hitl/) | Checkpointer 持久化 + interrupt 人机协作（LangGraph 杀手锏） |
+| 09 | [毕业项目：LangGraph 研究助手](framework-lessons/09_capstone/) | 多节点图 + Checkpointer，综合全部框架技术 |
 
 > 已完成全部 **9 节课** 🎉。每课都包含原理讲解 + 可运行代码 + 练习。
 
