@@ -22,11 +22,12 @@ _ROOT = Path(__file__).resolve().parents[1]
 if str(_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(_ROOT / "src"))
 
-from fastapi import FastAPI, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
 
+from kb_qa.auth import rate_limit
 from kb_qa.config import settings
 from kb_qa.ingest import get_vectorstore, ingest_directory
 from kb_qa.observability import get_logger, setup_logging
@@ -61,7 +62,7 @@ async def health() -> HealthResponse:
     )
 
 
-@app.post("/api/upload", response_model=UploadResponse)
+@app.post("/api/upload", response_model=UploadResponse, dependencies=[Depends(rate_limit)])
 async def upload(file: UploadFile) -> UploadResponse:
     """上传文档 → 存到 docs 目录 → 增量入库 → 作废检索索引。"""
     name = Path(file.filename or "").name
@@ -88,7 +89,7 @@ async def upload(file: UploadFile) -> UploadResponse:
     )
 
 
-@app.post("/api/ask")
+@app.post("/api/ask", dependencies=[Depends(rate_limit)])
 async def ask(req: AskRequest, request: Request):
     """SSE 流式问答。事件：progress / sources / token / done / error。"""
     thread_id = req.thread_id or f"web-{uuid.uuid4().hex[:8]}"

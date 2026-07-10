@@ -10,7 +10,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # config.py 在 src/kb_qa/ 下：parents[0]=kb_qa, [1]=src, [2]=项目根, [3]=portfolio-projects, [4]=仓库根
@@ -91,6 +91,25 @@ class Settings(BaseSettings):
     eval_sample_rate: float = 0.05      # 生产典型 5%；内测/演示可调高到 0.3~1.0
     eval_score_threshold: float = 0.5   # min(faithfulness,relevancy) 低于此即低分
     eval_review_queue_path: str = str(PROJECT_ROOT / "eval" / "review_queue.jsonl")
+
+    # ── 安全：鉴权 + 限流（LLMOps L04）─────────────────────────
+    # API_KEYS 逗号分隔多个 key（每调用方一个，便于单独吊销 + 按key限流）。
+    # auth_enabled=true 且配了 key 才启用鉴权；否则跳过（开箱即用，不锁死本地开发）。
+    # 生产务必配 API_KEYS，否则 /api/ask /api/upload 等于公网裸奔。
+    api_keys: str = ""
+    auth_enabled: bool = True
+    rate_limit_per_minute: int = 30     # 每个 key 每分钟请求上限（LLM 接口要克制）
+
+    @field_validator("api_keys", mode="after")
+    @classmethod
+    def _normalize_api_keys(cls, v: str) -> str:
+        """规范化：去空白、去空项。运行时用 api_keys_set 取集合。"""
+        return ",".join(k.strip() for k in v.split(",") if k.strip())
+
+    @property
+    def api_keys_set(self) -> set[str]:
+        """合法 key 集合（O(1) 查询，鉴权用）。"""
+        return set(self.api_keys.split(",")) if self.api_keys else set()
 
 
 @lru_cache

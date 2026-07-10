@@ -42,6 +42,9 @@
   <h1>📚 企业知识库问答</h1>
   <span id="status"></span>
   <div class="spacer"></div>
+  <label style="font-size:13px">API Key
+    <input id="apiKey" type="password" placeholder="Bearer key（鉴权用）" style="font-size:13px;padding:6px 10px;width:180px;border:1px solid #d0d7de;border-radius:6px">
+  </label>
   <label style="font-size:13px">检索模式
     <select id="mode">
       <option value="">默认（rerank）</option>
@@ -67,7 +70,16 @@ const srcList = document.getElementById('srcList');
 const statusEl = document.getElementById('status');
 const input = document.getElementById('question');
 const sendBtn = document.getElementById('send');
+const apiKeyInput = document.getElementById('apiKey');
 const threadId = 'web-' + Math.random().toString(36).slice(2, 10);
+
+// API Key 持久化（LLMOps L04 鉴权）：存 localStorage，刷新不丢
+apiKeyInput.value = localStorage.getItem('kb_api_key') || '';
+apiKeyInput.addEventListener('change', () => localStorage.setItem('kb_api_key', apiKeyInput.value));
+function authHeaders() {
+  const k = apiKeyInput.value.trim();
+  return k ? { 'Authorization': 'Bearer ' + k } : {};
+}
 
 function addMsg(cls, text) {
   const div = document.createElement('div');
@@ -89,7 +101,7 @@ document.getElementById('file').addEventListener('change', async (e) => {
   const fd = new FormData();
   fd.append('file', f);
   try {
-    const resp = await fetch('/api/upload', { method: 'POST', body: fd });
+    const resp = await fetch('/api/upload', { method: 'POST', body: fd, headers: authHeaders() });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.detail || resp.status);
     statusEl.textContent = `✅ ${data.filename} 入库 ${data.added_chunks} 块（共 ${data.total_chunks} 块）`;
@@ -112,7 +124,7 @@ async function ask() {
   try {
     const resp = await fetch('/api/ask', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ question: q, thread_id: threadId, mode: document.getElementById('mode').value || null }),
     });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
