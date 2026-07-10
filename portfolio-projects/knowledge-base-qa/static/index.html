@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>企业知识库问答</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+         background: #f5f6f8; color: #1f2328; height: 100vh; display: flex; flex-direction: column; }
+  header { background: #fff; border-bottom: 1px solid #e1e4e8; padding: 12px 24px;
+           display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 16px; }
+  header .spacer { flex: 1; }
+  select, button { font-size: 13px; padding: 6px 12px; border: 1px solid #d0d7de;
+                   border-radius: 6px; background: #fff; cursor: pointer; }
+  button.primary { background: #1a7f37; color: #fff; border-color: #1a7f37; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  #status { font-size: 12px; color: #656d76; }
+  main { flex: 1; display: flex; overflow: hidden; }
+  #chat { flex: 1; display: flex; flex-direction: column; padding: 16px 24px; overflow-y: auto; }
+  .msg { max-width: 76%; margin: 6px 0; padding: 10px 14px; border-radius: 10px;
+         white-space: pre-wrap; line-height: 1.6; font-size: 14px; }
+  .msg.user { align-self: flex-end; background: #dbeafe; }
+  .msg.bot  { align-self: flex-start; background: #fff; border: 1px solid #e1e4e8; }
+  .msg.bot .cite { color: #1a7f37; font-weight: 600; }
+  #sources { width: 320px; border-left: 1px solid #e1e4e8; background: #fff;
+             padding: 16px; overflow-y: auto; }
+  #sources h2 { font-size: 13px; color: #656d76; margin-bottom: 10px; }
+  .src { border: 1px solid #e1e4e8; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; font-size: 12px; }
+  .src .loc { font-weight: 600; color: #0969da; margin-bottom: 4px; word-break: break-all; }
+  .src .preview { color: #656d76; line-height: 1.5; }
+  footer { background: #fff; border-top: 1px solid #e1e4e8; padding: 12px 24px; display: flex; gap: 10px; }
+  #question { flex: 1; font-size: 14px; padding: 10px 14px; border: 1px solid #d0d7de; border-radius: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>📚 企业知识库问答</h1>
+  <span id="status"></span>
+  <div class="spacer"></div>
+  <label style="font-size:13px">检索模式
+    <select id="mode">
+      <option value="">默认（rerank）</option>
+      <option value="rerank">混合+重排</option>
+      <option value="hybrid">混合</option>
+      <option value="vector">纯向量</option>
+    </select>
+  </label>
+  <input type="file" id="file" accept=".md,.txt" hidden>
+  <button onclick="document.getElementById('file').click()">📄 上传文档</button>
+</header>
+<main>
+  <div id="chat"></div>
+  <aside id="sources"><h2>引用材料</h2><div id="srcList">（提问后显示本轮引用）</div></aside>
+</main>
+<footer>
+  <input id="question" placeholder="输入问题，回车发送…" autocomplete="off">
+  <button class="primary" id="send">发送</button>
+</footer>
+<script>
+const chat = document.getElementById('chat');
+const srcList = document.getElementById('srcList');
+const statusEl = document.getElementById('status');
+const input = document.getElementById('question');
+const sendBtn = document.getElementById('send');
+const threadId = 'web-' + Math.random().toString(36).slice(2, 10);
+
+function addMsg(cls, text) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + cls;
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+function renderCitations(div) {
+  div.innerHTML = div.textContent.replace(/【材料(\d+)】/g, '<span class="cite">【材料$1】</span>');
+}
+
+document.getElementById('file').addEventListener('change', async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  statusEl.textContent = '上传入库中…';
+  const fd = new FormData();
+  fd.append('file', f);
+  try {
+    const resp = await fetch('/api/upload', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || resp.status);
+    statusEl.textContent = `✅ ${data.filename} 入库 ${data.added_chunks} 块（共 ${data.total_chunks} 块）`;
+  } catch (err) {
+    statusEl.textContent = '❌ 上传失败：' + err.message;
+  }
+  e.target.value = '';
+});
+
+async function ask() {
+  const q = input.value.trim();
+  if (!q || sendBtn.disabled) return;
+  input.value = '';
+  sendBtn.disabled = true;
+  addMsg('user', q);
+  const botDiv = addMsg('bot', '');
+  srcList.innerHTML = '';
+  statusEl.textContent = '思考中…';
+
+  try {
+    const resp = await fetch('/api/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q, thread_id: threadId, mode: document.getElementById('mode').value || null }),
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '', eventName = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (line.startsWith('event:')) eventName = line.slice(6).trim();
+        else if (line.startsWith('data:')) handleEvent(eventName, line.slice(5).trim(), botDiv);
+      }
+    }
+  } catch (err) {
+    botDiv.textContent += '\n[请求失败] ' + err.message;
+  } finally {
+    renderCitations(botDiv);
+    statusEl.textContent = '';
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+function handleEvent(name, raw, botDiv) {
+  if (!raw) return;
+  let data;
+  try { data = JSON.parse(raw); } catch { return; }
+  if (name === 'progress') {
+    statusEl.textContent = data.detail;
+  } else if (name === 'sources') {
+    srcList.innerHTML = data.map(s =>
+      `<div class="src"><div class="loc">【材料${s.idx}】${s.source}${s.section ? ' · ' + s.section : ''}</div>` +
+      `<div class="preview">${s.preview}…</div></div>`
+    ).join('');
+  } else if (name === 'token') {
+    botDiv.textContent += data.content;
+    chat.scrollTop = chat.scrollHeight;
+  } else if (name === 'error') {
+    botDiv.textContent += '\n[错误] ' + data.message;
+  }
+}
+
+sendBtn.addEventListener('click', ask);
+input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ask(); });
+input.focus();
+</script>
+</body>
+</html>
