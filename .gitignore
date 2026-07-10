@@ -16,3 +16,7 @@ chroma_db_*/
 .DS_Store
 .idea/
 .vscode/
+
+# 推广/营销文案（仅本地用，不入库）
+小红书文案.md
+推广帖子.md
