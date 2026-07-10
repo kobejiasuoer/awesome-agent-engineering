@@ -1,0 +1,34 @@
+# ── docker-compose：一键启动 + 持久化卷 + 环境变量 ─────────
+# 用法：docker compose up -d && docker compose logs -f
+# 首次启动前：在项目根或仓库根准备 .env（ZHIPUAI_API_KEY 必填）
+#
+# 启动后把文档放进 ./data/docs 或用前端上传，即自动入库。
+
+services:
+  kb-qa:
+    build: .
+    image: kb-qa:latest
+    container_name: kb-qa
+    ports:
+      - "8001:8001"
+    environment:
+      ZHIPUAI_API_KEY: ${ZHIPUAI_API_KEY}
+      ANSWER_MODEL: ${ANSWER_MODEL:-glm-4}
+      REWRITE_MODEL: ${REWRITE_MODEL:-glm-4-flash}
+      ENABLE_RERANK: ${ENABLE_RERANK:-true}
+      BM25_WEIGHT: ${BM25_WEIGHT:-0.4}
+      VECTOR_WEIGHT: ${VECTOR_WEIGHT:-0.6}
+    volumes:
+      # 文档 + 会话 db 持久化
+      - ./data:/app/data
+      # 向量库持久化（重建容器不用重新 embedding）
+      - kb_chroma:/app/chroma_kb
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  kb_chroma:

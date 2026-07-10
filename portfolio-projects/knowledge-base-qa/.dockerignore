@@ -1,0 +1,8 @@
+# 构建上下文瘦身
+chroma_kb/
+*.db
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+.git/
