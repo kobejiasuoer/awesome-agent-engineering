@@ -93,6 +93,12 @@ class Settings(BaseSettings):
     # 记忆衰减天数（超过且未被检索的淘汰，0=不衰减）
     memory_decay_days: float = 30.0
 
+    # ── Skills 加载（Frontier L03 · 上下文工程）──────────────────
+    # 启用后，writer 写报告前先加载匹配的 skill（渐进式上下文加载）。
+    # skill = 一个文件夹（SKILL.md 说明 + 资源），Agent 先看描述，用到才加载全文。
+    # 默认关：不破坏现有测试；开启后 writer 产出遵循 skill 规定的格式。
+    enable_skills: bool = False
+
     # ── 服务（阶段 3）──────────────────────────────────────────
     host: str = "0.0.0.0"
     port: int = 8000

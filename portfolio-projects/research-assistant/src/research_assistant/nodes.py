@@ -37,6 +37,24 @@ def get_memory_store():
     return _memory_store
 
 
+# Skills 加载器单例（Frontier L03）：懒加载，无 enable_skills 时不创建
+_skill_loader = None
+
+
+def get_skill_loader():
+    """获取全局 SkillLoader 单例。
+
+    enable_skills=false 时返回 None（完全不介入，现有测试不受影响）。
+    """
+    global _skill_loader
+    if not settings.enable_skills:
+        return None
+    if _skill_loader is None:
+        from .skill_loader import SkillLoader
+        _skill_loader = SkillLoader()
+    return _skill_loader
+
+
 # ════════════════════════════════════════════════════════════
 # 并行研究子图节点
 # ════════════════════════════════════════════════════════════
@@ -198,10 +216,24 @@ def make_writer(smart_llm):
         summary = state["research_summary"]
         feedback = state.get("feedback", "")
 
+        # ── Skills 加载（Frontier L03）──────────────────────────
+        # 渐进式披露：先看描述（已进 system prompt），用到时加载全文注入。
+        # enable_skills=false 或无匹配时 skill_text 为空，不影响现有逻辑。
+        skill_text = ""
+        skill_loader = get_skill_loader()
+        if skill_loader is not None:
+            # 用摘要 + 反馈匹配 skill（反馈可能要求特定格式）
+            match_query = f"{summary} {feedback}"
+            skill_text = skill_loader.load_matched_skills(match_query)
+            if skill_text:
+                log.info(f"writer 加载 skill：{skill_loader.match_skills(match_query)}")
+
         prompt = (
             f"你是专业研究报告撰写者。基于以下研究摘要，写一份结构化研究报告，"
             f"包含【概述】和【核心要点（3-5条）】，语言专业简洁：\n\n{summary}"
         )
+        if skill_text:
+            prompt += f"\n\n📋 参考技能规范（请遵循其格式要求）：\n{skill_text}"
         if feedback:
             prompt += f"\n\n⚠️ 审稿反馈（请据此改进）：{feedback}"
 
