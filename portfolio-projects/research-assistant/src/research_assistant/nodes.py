@@ -266,6 +266,40 @@ def make_writer(smart_llm):
         resp = smart_llm.invoke(prompt)
         report = resp.content.strip()
 
+        # ── 代码解释器（Frontier L07）──────────────────────────
+        # 涉及数值对比/统计时，让 LLM 生成代码 → 沙箱执行 → 结果附报告附录
+        # enable_code_interpreter=false 时不介入，不影响现有逻辑。
+        if settings.enable_code_interpreter:
+            try:
+                from .code_interpreter import (
+                    should_use_code, run_code_for_research, format_code_appendix,
+                    reset_executed_codes,
+                )
+                # 判断是否需要走代码
+                if should_use_code(summary):
+                    # 让 LLM 生成分析代码
+                    code_resp = smart_llm.invoke(
+                        f"基于以下研究摘要，生成一段 Python 代码做数据分析"
+                        f"（只允许 json/statistics/collections/math/re 标准库）。\n"
+                        f"摘要：\n{summary}\n"
+                        f"只输出代码，不要解释。"
+                    )
+                    generated_code = code_resp.content.strip()
+                    # 去掉 markdown 代码块标记
+                    if generated_code.startswith("```"):
+                        generated_code = "\n".join(
+                            l for l in generated_code.split("\n")
+                            if not l.startswith("```")
+                        )
+                    cr = run_code_for_research(generated_code)
+                    if cr.success:
+                        log.info(f"writer 代码执行成功，结果附报告附录")
+                        report += f"\n\n📊 **代码计算结果**：\n```\n{cr.output[:500]}\n```"
+                    # 附代码附录（可复算性）
+                    report += format_code_appendix()
+            except Exception as e:
+                log.warning(f"代码解释器失败（降级到 LLM 直出）：{e}")
+
         return {
             "report": report,
             "messages": [AIMessage(content=report)],

@@ -104,6 +104,11 @@ class Settings(BaseSettings):
     # 补研次数上限（防死循环，复用 max_rewrites 思路）
     max_re_research: int = 2
 
+    # ── 代码解释器（Frontier L07 · CodeAct 落地）──────────────────
+    # 启用后，writer 写报告时若涉及数值对比/统计，路由到沙箱代码执行。
+    # 报告附录附执行过的代码（可复算性）。默认关：不破坏现有测试。
+    enable_code_interpreter: bool = False
+
     # ── 服务（阶段 3）──────────────────────────────────────────
     host: str = "0.0.0.0"
     port: int = 8000

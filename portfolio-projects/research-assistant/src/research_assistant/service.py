@@ -61,6 +61,14 @@ async def invoke(topic: str, thread_id: str) -> dict:
     smart_llm = make_smart_llm()
     sub = build_research_subgraph(fast_llm, smart_llm)
 
+    # Frontier L07：重置代码执行历史（每次新研究清空附录）
+    if settings.enable_code_interpreter:
+        try:
+            from .code_interpreter import reset_executed_codes
+            reset_executed_codes()
+        except Exception:
+            pass
+
     async with get_async_saver_context() as saver:
         system = build_system(smart_llm, fast_llm, sub, checkpointer=saver)
         config = {"configurable": {"thread_id": thread_id}}
