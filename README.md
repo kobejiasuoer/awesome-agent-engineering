@@ -1,15 +1,15 @@
 # LLM 应用实战课程 📚
 
-这是一套**从零开始、系统掌握大模型应用开发**的实战课程，覆盖 **RAG、Agent、框架工程化、多智能体编排** 四大方向。
+这是一套**从零开始、系统掌握大模型应用开发**的实战课程，覆盖 **RAG、Agent、框架工程化、多智能体编排、LLMOps 生产运维** 五大方向。
 面向**会 Python 但刚接触大模型**的开发者，用可运行的代码 + 原理讲解，一步步从原理手写到框架落地，再到多 Agent 协作架构。
 
 > 技术栈：智谱 GLM-4 + embedding-3 · Chroma 本地向量库 · LangChain + LangGraph · CrewAI · AutoGen · Python
 
 ---
 
-## 🗺️ 四门课程总览
+## 🗺️ 五门课程总览
 
-本工作区包含**四门递进课程**，建议按顺序学：
+本工作区包含**五门递进课程**，建议按顺序学：
 
 | 课程 | 内容 | 状态 |
 |------|------|------|
@@ -17,20 +17,23 @@
 | 🤖 [Agent 手写课程](agent-lessons/) | 从零系统理解 AI Agent 原理（Function Calling→ReAct→工具设计→记忆→规划→Agentic RAG→多智能体→毕业项目）| ✅ 9/9 完成 |
 | 🔧 [框架进阶课程](framework-lessons/) | LangChain + LangGraph 工程化（把手写原理翻译成框架，每课做"手写版 vs 框架版"对比）| ✅ 9/9 完成 |
 | 🔀 [工作流与多智能体编排](workflow-lessons/) | 多 Agent 协作架构（supervisor/swarm/子图/并行/共享态/多模型，三框架横向对比）| ✅ 9/9 完成 |
+| 🛡️ [LLMOps 生产运维](ops-lessons/) | 上线之后：可观测性（日志/追踪/线上评估）→ 安全（鉴权限流/注入攻防/守护栏）→ MCP 集成 → 性能成本（缓存/压测/选型）。把作品集项目从「能跑」推进到「运维就绪」| ✅ 13/13 完成 |
 
-> **学习路径**：先学 RAG（懂检索原理）→ 再学 Agent（懂自主决策）→ 再学框架进阶（工程化落地）→ 最后学多智能体编排（架构师进阶）。
+> **学习路径**：先学 RAG（懂检索原理）→ 再学 Agent（懂自主决策）→ 再学框架进阶（工程化落地）→ 再学多智能体编排（架构师进阶）→ 最后学 LLMOps（把项目推进到运维就绪、可讲完整运维故事）。
 
 ---
 
 ## 🚀 生产级作品集项目
 
-学完 36 课后，把所学能力缝合成**真正可上生产的 AI 应用**：
+学完课程后，把所学能力缝合成**真正可上生产的 AI 应用**：
 
 | 项目 | 内容 | 状态 |
 |------|------|------|
-| 🔬 [AI 研究分析助手](portfolio-projects/research-assistant/) | 多智能体并行研究系统：真实联网搜索 + 审稿回路 + 多模型降本 + SSE 流式 + SqliteSaver 持久化 + FastAPI 服务化 + Docker 部署。由 workflow L09 教学原型演进，补齐 8 个生产缺口。| ✅ 完成 |
+| 📚 [企业知识库问答系统](portfolio-projects/knowledge-base-qa/) | 生产级 RAG：混合检索 + 智谱 rerank + 防幻觉引用 + ragas 评估。**经 ops-lessons 升级为运维就绪 v2**：结构化日志/Langfuse 追踪/线上评估闭环 + key 鉴权限流 + 注入攻防守护栏 + MCP Server（可被 Agent 调用）+ 语义缓存/压测/成本选型。| ✅ 运维就绪 |
+| 🔬 [AI 研究分析助手](portfolio-projects/research-assistant/) | 多智能体并行研究系统：真实联网搜索 + 审稿回路 + 多模型降本 + SSE 流式 + SqliteSaver 持久化 + FastAPI 服务化 + Docker 部署。**经 ops-lessons L09 接入 MCP**，研究时可查 kb-qa 内部知识库（内部+联网双源）。| ✅ 完成 |
 
-> 这是课程能力的**生产级落地**——不是 demo，是能直接部署、能扛真实流量的 AI 应用服务。
+> 这是课程能力的**生产级落地**——不是 demo，是能直接部署、能扛真实流量、能讲完整运维故事的 AI 应用服务。
+> 两个项目通过 MCP 标准协议打通（见 [ops-lessons L09](ops-lessons/09_mcp_client/)）。
 
 ---
 
@@ -144,14 +147,16 @@ python rag-lessons/01_getting_started/code.py
 ```
 RAG-test/
 ├── README.md                  ← 你在这里：四门课程 + 作品集项目总览
-├── requirements.txt           ← 依赖（四门课统一）
+├── requirements.txt           ← 依赖（五门课统一）
 ├── .env.example               ← API Key 配置模板
-├── data/sample_docs/          ← 练习用的示例文档（四门课共用）
+├── data/sample_docs/          ← 练习用的示例文档（五门课共用）
 ├── rag-lessons/               ← 课程一：RAG 手写（9 课，已完成）
 ├── agent-lessons/             ← 课程二：Agent 手写（9 课，已完成）
 ├── framework-lessons/         ← 课程三：框架进阶（9 课，已完成）
 ├── workflow-lessons/          ← 课程四：工作流与多智能体编排（9 课，已完成）
-├── portfolio-projects/        ← 🚀 生产级作品集项目（学完课程后的落地）
+├── ops-lessons/               ← 课程五：LLMOps 生产运维（13 课，已完成）
+├── portfolio-projects/        ← 🚀 生产级作品集项目（学完课程后的落地，ops-lessons 主战场）
+│   ├── knowledge-base-qa/     ←   企业知识库问答（RAG，运维就绪 v2）
 │   └── research-assistant/    ←   AI 研究分析助手（多智能体 + FastAPI + Docker）
 └── docs/                      ← 设计文档与实现计划
 ```

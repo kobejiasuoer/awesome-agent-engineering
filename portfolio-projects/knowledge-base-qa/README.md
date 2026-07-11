@@ -138,3 +138,24 @@ make eval                     # 或 python eval/run_eval.py --modes rerank --lim
 | 评估 | rag-08 自制 mini-RAGAS | ragas 四指标 + 消融 + 诊断报告 |
 | 分块 | rag-04 / framework-03 | MarkdownHeaderTextSplitter 结构感知 |
 | FastAPI/SSE/Docker | research-assistant | 骨架复用，新增文件上传与索引热更新 |
+
+## 生产运维（LLMOps）
+
+本项目经 [ops-lessons](../../ops-lessons/)（LLMOps 生产运维课程，13 课）升级，从「能跑的 RAG」推进到「运维就绪的生产服务」。四个维度的能力：
+
+| 维度 | 能力 | 代码 | 课程 |
+|---|---|---|---|
+| **可观测性** | 结构化日志（trace_id 贯穿）| `src/kb_qa/observability.py` | [L01](../../ops-lessons/01_structured_logging/) |
+| | 全链路追踪（Langfuse + 降级）| `src/kb_qa/tracing.py` | [L02](../../ops-lessons/02_langfuse_tracing/) |
+| | 线上评估闭环（抽样+点踩队列）| `src/kb_qa/online_eval.py` + `POST /api/feedback` | [L03](../../ops-lessons/03_online_eval/) |
+| **安全** | API 鉴权（key）+ 限流（滑动窗口）| `src/kb_qa/auth.py` | [L04](../../ops-lessons/04_auth_ratelimit/) |
+| | Prompt 注入攻击测试集 | `eval/attack_set.json` + `eval/run_attack.py` | [L05](../../ops-lessons/05_prompt_injection/) |
+| | 输入输出守护栏（纵深防御）| `src/kb_qa/guardrails.py` | [L06](../../ops-lessons/06_guardrails/) |
+| **集成** | MCP Server（知识库成标准工具）| `mcp_server.py` | [L08](../../ops-lessons/08_mcp_server/) |
+| **性能成本** | 语义缓存（同义命中）| `src/kb_qa/semantic_cache.py` | [L10](../../ops-lessons/10_semantic_cache/) |
+| | 压测基线（QPS/P95）| `loadtest/run_loadtest.py` | [L11](../../ops-lessons/11_loadtest/) |
+| | 成本/质量选型报告 | `eval/run_cost_eval.py` | [L12](../../ops-lessons/12_cost_quality/) |
+
+> 完整的生产上线检查清单见 [ops-lessons/L13](../../ops-lessons/13_capstone/production_readiness_checklist.md)（36 项，每项指向代码证据）。
+>
+> **一句话**：能回答「上线之后怎么知道好不好、怎么防攻击、怎么被集成、怎么控成本」——这是「做过 demo」和「运维过生产 AI 服务」的分界线。
