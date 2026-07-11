@@ -20,6 +20,7 @@ from .guardrails import sanitize_output
 from .observability import estimate_tokens, get_logger, log_event, new_trace_id, set_trace_id
 from .online_eval import sample_and_evaluate
 from .retriever import KBRetriever
+from .semantic_cache import get_cache
 from .tracing import start_trace, trace_generation, trace_span
 
 # 服务级 logger：问答流程的关键事件都从这儿打（带 trace_id 贯穿）。
@@ -39,10 +40,19 @@ async def get_kb() -> KBRetriever:
 
 
 async def reset_kb() -> None:
-    """文档上传/入库后调用：作废旧索引，下次请求重建。"""
+    """文档上传/入库后调用：作废旧索引，下次请求重建。
+
+    同时作废语义缓存（LLMOps L10）：文档变了，旧答案不能再复用，否则返回过时信息。
+    """
     global _kb
     async with _kb_lock:
         _kb = None
+    # 缓存作废放锁外（独立数据结构，无竞态）：宁可少命中，不能答过时。
+    if settings.enable_cache:
+        try:
+            get_cache().invalidate()
+        except Exception:
+            pass
 
 
 def _event(name: str, data: dict | list) -> dict:
@@ -68,6 +78,34 @@ async def stream_ask(
 
     history = ChatHistory()
     past = history.get(thread_id)
+
+    # 语义缓存（LLMOps L10）：无历史（独立问题）且启用缓存时，先查缓存。
+    # 命中 → 直接返回缓存答案，跳过检索+生成（省延迟省成本）。
+    # 有历史（追问）时跳过——追问依赖上下文，缓存可能答错。
+    if settings.enable_cache and not past:
+        try:
+            cache = get_cache()
+            hit, cached_answer, cached_sources = cache.get(question)
+            if hit:
+                log_event(_log, "cache.short_circuit", question=question[:40])
+                # 回放缓存的 sources（前端引用面板仍能显示出处）
+                if cached_sources:
+                    yield _event("sources", cached_sources)
+                yield _event("token", {"content": cached_answer})
+                history.append(thread_id, "human", question)
+                history.append(thread_id, "ai", cached_answer)
+                yield _event("done", {
+                    "answer": cached_answer,
+                    "thread_id": thread_id,
+                    "trace_id": tid,
+                    "mode": mode or ("rerank" if settings.enable_rerank else "hybrid"),
+                    "cache_hit": True,
+                })
+                log_event(_log, "request.done", cache_hit=True)
+                return
+        except Exception as e:
+            # 缓存故障不阻塞主流程（降级为走正常管线）
+            log_event(_log, "cache.error", level=30, error=str(e))
 
     # 开一个 trace 贯穿整次问答（LLMOps L02）：
     #   - 配了 Langfuse → 上报面板，可视化每一步耗时/输入输出/成本
@@ -102,18 +140,16 @@ async def stream_ask(
             duration_ms=round((time.perf_counter() - t0) * 1000),
         )
 
-        yield _event(
-            "sources",
-            [
-                {
-                    "idx": i,
-                    "source": d.metadata.get("source", "?"),
-                    "section": d.metadata.get("section", ""),
-                    "preview": d.page_content[:120],
-                }
-                for i, d in enumerate(docs, 1)
-            ],
-        )
+        sources_payload = [
+            {
+                "idx": i,
+                "source": d.metadata.get("source", "?"),
+                "section": d.metadata.get("section", ""),
+                "preview": d.page_content[:120],
+            }
+            for i, d in enumerate(docs, 1)
+        ]
+        yield _event("sources", sources_payload)
 
         t0 = time.perf_counter()
         with trace_generation("answer", model=settings.answer_model) as gen:
@@ -132,6 +168,14 @@ async def stream_ask(
         # 生产可进一步在流式层做实时拦截（见 exercise）。
         answer = sanitize_output(answer)
 
+        # 语义缓存回填（LLMOps L10）：miss 走完管线后，把这条问答存入缓存，
+        # 下次同义问法就能命中。sources 一并存，命中时复用引用材料。
+        if settings.enable_cache and not past:
+            try:
+                get_cache().put(question, answer, sources=sources_payload)
+            except Exception as e:
+                log_event(_log, "cache.put_error", level=30, error=str(e))
+
         history.append(thread_id, "human", question)
         history.append(thread_id, "ai", answer)
 
@@ -149,9 +193,10 @@ async def stream_ask(
             "thread_id": thread_id,
             "trace_id": tid,  # 回吐给前端/调用方，方便排障时拿 id 捞日志
             "mode": mode or ("rerank" if settings.enable_rerank else "hybrid"),
+            "cache_hit": False,
         },
     )
-    log_event(_log, "request.done")
+    log_event(_log, "request.done", cache_hit=False)
 
     # 线上评估闭环（LLMOps L03）：done 后异步抽样评估，绝不阻塞已返回的响应。
     # sample_and_evaluate 内部按 eval_sample_rate 决定是否真跑；低分入 review_queue。

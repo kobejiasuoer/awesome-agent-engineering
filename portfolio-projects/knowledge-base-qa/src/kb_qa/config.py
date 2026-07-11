@@ -100,6 +100,13 @@ class Settings(BaseSettings):
     auth_enabled: bool = True
     rate_limit_per_minute: int = 30     # 每个 key 每分钟请求上限（LLM 接口要克制）
 
+    # ── 性能与成本：语义缓存（LLMOps L10）──────────────────────
+    # 同义问法命中后跳过检索+生成，降延迟降成本。
+    # 阈值太松（<0.85）会误命中（年假vs病假答错）；太紧（>0.98）几乎不命中。
+    # 0.92 是 embedding-3 + cosine 的经验平衡点，按真实问法调。
+    enable_cache: bool = True
+    cache_similarity_threshold: float = 0.92
+
     @field_validator("api_keys", mode="after")
     @classmethod
     def _normalize_api_keys(cls, v: str) -> str:
