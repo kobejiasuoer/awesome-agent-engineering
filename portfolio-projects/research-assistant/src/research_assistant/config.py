@@ -81,6 +81,18 @@ class Settings(BaseSettings):
     enable_kb_search: bool = False
     kb_mcp_server_path: str = ""   # 留空=自动定位同仓库的 kb-qa/mcp_server.py
 
+    # ── 记忆系统（Frontier L01 · Agent 记忆分层）─────────────────
+    # 与 sqlite_db_path（Checkpointer 对话持久化）不同：这是 Agent 的经验记忆库。
+    # 启用后，researcher 研究前先 recall 相关旧记忆注入 prompt，实现跨会话记忆。
+    # 默认关：不破坏现有 25 个测试；开启后第二次研究同一主题能记得第一次查过什么。
+    enable_memory: bool = False
+    # 记忆库持久化路径（Chroma 向量库目录）
+    memory_db_path: str = "memory_store"
+    # 情景记忆上限（L02 遗忘策略用，0=不限）
+    memory_max_episodic: int = 100
+    # 记忆衰减天数（超过且未被检索的淘汰，0=不衰减）
+    memory_decay_days: float = 30.0
+
     # ── 服务（阶段 3）──────────────────────────────────────────
     host: str = "0.0.0.0"
     port: int = 8000

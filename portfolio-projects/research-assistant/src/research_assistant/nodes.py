@@ -10,11 +10,31 @@ from __future__ import annotations
 from langchain_core.messages import AIMessage
 from langgraph.graph import END
 
-from .logging_config import timed_node
+from .logging_config import get_logger, timed_node
 from .state import ResearchState, SystemState
 from .tools import web_search
 from .kb_mcp_client import kb_search
 from .config import settings
+
+log = get_logger("nodes")
+
+# 记忆系统单例（Frontier L01）：懒加载，无 enable_memory 时不创建
+_memory_store = None
+
+
+def get_memory_store():
+    """获取/创建全局 MemoryStore 单例。
+
+    懒加载 + 单例：多次 recall/remember 共享同一库，跨会话记忆才成立。
+    enable_memory=false 时返回 None（完全不介入，现有测试不受影响）。
+    """
+    global _memory_store
+    if not settings.enable_memory:
+        return None
+    if _memory_store is None:
+        from .memory import MemoryStore
+        _memory_store = MemoryStore()
+    return _memory_store
 
 
 # ════════════════════════════════════════════════════════════
@@ -68,6 +88,17 @@ def make_researcher(fast_llm):
     async def researcher(state: dict) -> dict:
         subtopic = state["subtopic"]
 
+        # ── 记忆召回（Frontier L01）──────────────────────────────
+        # 研究前先 recall 相关旧记忆，注入 prompt。这是「第2次运行记得第1次」的关键。
+        # enable_memory=false 或无记忆时，memory_hint 为空，不影响现有逻辑。
+        memory_hint = ""
+        mem_store = get_memory_store()
+        if mem_store is not None:
+            hits = mem_store.recall(subtopic, k=3)
+            memory_hint = mem_store.format_recall_for_prompt(hits)
+            if memory_hint:
+                log.info(f"researcher 记忆命中：episodic={len(hits['episodic'])}, semantic={len(hits['semantic'])}")
+
         # 内部知识库检索（LLMOps L09）：启用时先查企业知识库（经 MCP 协议）。
         # kb_search 失败时返回降级提示（不抛异常），不影响后续联网。
         kb_raw = await kb_search(subtopic) if settings.enable_kb_search else ""
@@ -90,9 +121,11 @@ def make_researcher(fast_llm):
 
         if has_source:
             # 有真实素材：让 LLM 基于搜索结果综合（更准确、可溯源）
+            # 有记忆命中时，提示 Agent「在旧记忆基础上深化而非重复」
+            memory_instr = f"\n\n{memory_hint}\n请在上述记忆基础上深化，不要简单重复旧结论。" if memory_hint else ""
             resp = fast_llm.invoke(
                 f"你是研究员。针对子问题「{subtopic}」，基于以下搜索资料，"
-                f"提炼 2-3 句核心发现（不要照抄，要提炼）：\n\n{search_raw}"
+                f"提炼 2-3 句核心发现（不要照抄，要提炼）：\n\n{search_raw}{memory_instr}"
             )
             finding = f"【{subtopic}】\n  发现：{resp.content.strip()}\n  来源：{source_tag}"
         else:
