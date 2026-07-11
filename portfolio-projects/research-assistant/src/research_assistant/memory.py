@@ -439,3 +439,94 @@ class MemoryStore:
 def _new_id(text: str) -> str:
     """生成记忆 id：内容 hash + 时间戳，保证唯一且可去重。"""
     return hashlib.md5(f"{text}{time.time()}".encode()).hexdigest()[:12]
+
+
+# ════════════════════════════════════════════════════════════
+# 反思式写入（Frontier L02）：任务结束后让 LLM 提炼值得记的东西
+# ════════════════════════════════════════════════════════════
+def reflect_and_store(
+    trajectory: list[dict] | str,
+    topic: str,
+    store: MemoryStore,
+    llm=None,
+) -> list[EpisodicMemory]:
+    """反思式写入：给定一次任务轨迹 → LLM 提炼记忆条目 → 写入 MemoryStore。
+
+    核心思想（Generative Agents 的 reflection tree）：
+        原始对话全存会淹没检索——Agent 要自己回答「这次学到了什么值得下次复用？」
+        生成结构化记忆条目（含类型/置信度），只存提炼后的高密度信息。
+
+    Args:
+        trajectory: 任务轨迹（findings 列表或文本）。可以是 L00 基线格式或 findings 字符串列表
+        topic: 本次研究主题
+        store: 目标 MemoryStore
+        llm: 用于提炼的 LLM（None 时降级为关键词抽取）
+
+    Returns:
+        写入的 EpisodicMemory 列表
+
+    流派对比：
+        ① 全存：检索被噪音淹没
+        ② 规则抽取：脆，覆盖不了开放场景
+        ③ 反思式写入（本课选它）：LLM 提炼，灵活但依赖 LLM 质量
+    """
+    # 把轨迹整理成文本
+    if isinstance(trajectory, list):
+        if trajectory and isinstance(trajectory[0], dict):
+            # L00 轨迹格式：提取 output 字段
+            traj_text = "\n".join(
+                f"[{s.get('node', '?')}] {s.get('output', '')}"
+                for s in trajectory if s.get("output")
+            )
+        else:
+            # findings 字符串列表
+            traj_text = "\n".join(str(s) for s in trajectory)
+    else:
+        traj_text = str(trajectory)
+
+    if not traj_text.strip():
+        log.warning("reflect_and_store: 轨迹为空，跳过")
+        return []
+
+    written: list[EpisodicMemory] = []
+
+    if llm is not None:
+        # 让 LLM 提炼 3-5 条记忆条目
+        resp = llm.invoke(
+            f"你是记忆整理助手。以下是一次关于「{topic}」的研究轨迹。"
+            f"请提炼 3-5 条【值得下次研究复用】的记忆条目，每条一行，"
+            f"格式：内容 | 置信度(0-1) | 类型(事实/方法/结论)。\n"
+            f"要求：只记有复用价值的，不要记流水账。\n\n{traj_text}"
+        )
+        lines = resp.content.strip().split("\n")
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split("|")
+            content = parts[0].strip()
+            if not content:
+                continue
+            confidence = 0.6
+            if len(parts) > 1:
+                try:
+                    confidence = float(parts[1].strip())
+                except ValueError:
+                    pass
+            mem_type = parts[2].strip() if len(parts) > 2 else "结论"
+            # 写入情景记忆（带类型标记）
+            tagged = f"[{mem_type}·置信{confidence}] {content}"
+            mem = store.remember(tagged, topic=topic, source="reflection")
+            written.append(mem)
+        log.info(f"reflect_and_store(LLM): 从轨迹提炼 {len(written)} 条记忆")
+    else:
+        # 降级：无 LLM 时用简单规则抽取（取每条 finding 的核心句）
+        findings_lines = [l.strip() for l in traj_text.split("\n") if l.strip() and "发现" in l]
+        if not findings_lines:
+            findings_lines = [l.strip() for l in traj_text.split("\n") if l.strip()][:5]
+        for line in findings_lines[:5]:
+            mem = store.remember(f"[规则提炼] {line}", topic=topic, source="reflection_rule")
+            written.append(mem)
+        log.info(f"reflect_and_store(规则降级): 抽取 {len(written)} 条记忆")
+
+    return written

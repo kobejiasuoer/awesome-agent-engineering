@@ -25,8 +25,11 @@ from langchain_core.messages import AIMessage
 
 from .config import settings
 from .graph import build_research_subgraph, build_system
+from .logging_config import get_logger
 from .models import make_fast_llm, make_smart_llm
 from .persist import get_async_saver_context
+
+logger = get_logger("service")
 
 
 def _initial_state(topic: str) -> dict:
@@ -46,6 +49,9 @@ async def invoke(topic: str, thread_id: str) -> dict:
     """跑一次完整研究，返回最终 state（含 report/findings/review）。
 
     供不需要流式的场景用（如内部调用、测试）。
+
+    Frontier L02：研究结束后若 enable_memory，异步触发 reflect_and_store，
+    把本次发现提炼成记忆条目存入 MemoryStore（第二次研究才能 recall 到）。
     """
     fast_llm = make_fast_llm()
     smart_llm = make_smart_llm()
@@ -55,8 +61,30 @@ async def invoke(topic: str, thread_id: str) -> dict:
         system = build_system(smart_llm, fast_llm, sub, checkpointer=saver)
         config = {"configurable": {"thread_id": thread_id}}
         result = await system.ainvoke(_initial_state(topic), config=config)
-        # 剥掉不可序列化的对象（messages 里的 AIMessage 转文本）
-        return _serialize_state(result)
+        serialized = _serialize_state(result)
+
+        # ── 反思式写入（Frontier L02）──────────────────────
+        # 研究结束后把 findings 提炼成记忆条目。失败不阻塞主流程（降级）。
+        if settings.enable_memory:
+            try:
+                from .nodes import get_memory_store
+                from .memory import reflect_and_store
+                mem_store = get_memory_store()
+                if mem_store is not None:
+                    findings = serialized.get("findings", [])
+                    # 用 smart_llm 提炼（质量优先）；失败降级规则抽取
+                    try:
+                        reflect_and_store(findings, topic, mem_store, llm=smart_llm)
+                    except Exception as e:
+                        # LLM 提炼失败 → 规则降级（不丢记忆，只是质量低些）
+                        logger.info(f"LLM 反思失败，降级规则抽取：{e}")
+                        reflect_and_store(findings, topic, mem_store, llm=None)
+                    # 定期巩固（每次研究后尝试，把情景记忆归纳成语义结论）
+                    mem_store.consolidate(llm=smart_llm)
+            except Exception as e:
+                logger.warning(f"反思式写入整体失败（不阻塞主流程）：{e}")
+
+        return serialized
 
 
 async def stream_research(topic: str, thread_id: str) -> AsyncIterator[dict]:
@@ -116,6 +144,26 @@ async def stream_research(topic: str, thread_id: str) -> AsyncIterator[dict]:
                     "rewrite_count": final_state.get("rewrite_count", 0),
                 }, ensure_ascii=False),
             }
+
+            # ── 反思式写入（Frontier L02）──────────────────────
+            # done 事件之后异步触发记忆提炼，不阻塞前端已收到的结果。
+            # 失败不抛异常（记忆是增强不是必需，降级保证主流程稳定）。
+            if settings.enable_memory:
+                try:
+                    from .nodes import get_memory_store
+                    from .memory import reflect_and_store
+                    mem_store = get_memory_store()
+                    if mem_store is not None:
+                        findings = final_state.get("findings", [])
+                        try:
+                            reflect_and_store(findings, topic, mem_store, llm=smart_llm)
+                        except Exception as e:
+                            logger.info(f"LLM 反思失败，降级规则抽取：{e}")
+                            reflect_and_store(findings, topic, mem_store, llm=None)
+                        mem_store.consolidate(llm=smart_llm)
+                        mem_store.forget()  # 遗忘策略：淘汰旧且不用的
+                except Exception as e:
+                    logger.warning(f"反思式写入整体失败（不阻塞主流程）：{e}")
 
     except Exception as e:
         yield {

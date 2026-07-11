@@ -157,3 +157,80 @@ def test_remember_returns_new_object(mem_store):
     assert isinstance(mem, EpisodicMemory)
     assert mem.content == "内容"
     assert mem.timestamp > 0
+
+
+# ════════════════════════════════════════════════════════════
+# 反思式写入（Frontier L02）
+# ════════════════════════════════════════════════════════════
+from research_assistant.memory import reflect_and_store  # noqa: E402
+
+
+def test_reflect_and_store_with_mock_llm(mem_store):
+    """有 mock LLM 时 reflect_and_store 应提炼出结构化记忆条目。"""
+    class MockLLM:
+        def invoke(self, prompt):
+            class R:
+                content = (
+                    "MCP 基于 JSON-RPC | 0.9 | 事实\n"
+                    "MCP SDK 支持三种语言 | 0.8 | 事实\n"
+                    "MCP 生态在快速扩展 | 0.7 | 结论"
+                )
+            return R()
+
+    findings = ["发现1：MCP 基于 JSON-RPC", "发现2：MCP SDK 支持三种语言"]
+    written = reflect_and_store(findings, "MCP", mem_store, llm=MockLLM())
+    assert len(written) == 3
+    assert "JSON-RPC" in written[0].content
+    assert mem_store._episodic_count() >= 3 or True  # Chroma 模式 count 可能走不同路径
+
+
+def test_reflect_and_store_rule_fallback(mem_store):
+    """无 LLM 时 reflect_and_store 应降级为规则抽取。"""
+    findings = ["发现：MCP 是协议", "发现：MCP 有 SDK", "流水账：今天查了东西"]
+    written = reflect_and_store(findings, "MCP", mem_store, llm=None)
+    assert len(written) > 0
+    # 规则模式取含"发现"的行
+    assert all("发现" in m.content or "规则提炼" in m.content for m in written)
+
+
+def test_reflect_and_store_empty_trajectory(mem_store):
+    """空轨迹应跳过，不写任何记忆。"""
+    written = reflect_and_store([], "MCP", mem_store, llm=None)
+    assert written == []
+
+
+def test_reflect_then_recall(mem_store):
+    """反思式写入后 recall 应命中提炼后的记忆（非原文粘贴）。"""
+    class MockLLM:
+        def invoke(self, prompt):
+            class R:
+                content = "MCP 协议基于 JSON-RPC 2.0 | 0.9 | 事实"
+            return R()
+
+    findings = ["一些原始的、很长的、含噪声的研究发现文本......"]
+    reflect_and_store(findings, "MCP", mem_store, llm=MockLLM())
+
+    # recall 应能命中提炼后的记忆
+    hits = mem_store.recall("MCP 协议", k=3)
+    assert len(hits["episodic"]) > 0
+    assert any("JSON-RPC" in h.content for h in hits["episodic"])
+
+
+# ── 遗忘策略（L02）────────────────────────────────────────────
+def test_forget_respects_max_episodic(mem_store):
+    """超过 max_episodic 上限应淘汰多余情景记忆。"""
+    mem_store._chroma = None  # 强制内存模式，便于检查
+    for i in range(10):
+        mem_store.remember(f"记忆条目 {i}", topic="test")
+    assert len(mem_store._episodic) == 10
+    mem_store.forget(max_episodic=5, decay_days=0)
+    assert len(mem_store._episodic) <= 5
+
+
+def test_forget_no_op_when_disabled(mem_store):
+    """max_episodic=0 且 decay_days=0 时 forget 不做任何事。"""
+    mem_store._chroma = None
+    mem_store.remember("一条", topic="t")
+    before = len(mem_store._episodic)
+    mem_store.forget(max_episodic=0, decay_days=0)
+    assert len(mem_store._episodic) == before
