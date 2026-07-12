@@ -1,0 +1,82 @@
+[
+  {
+    "id": "T01",
+    "topic": "MCP 协议的核心设计",
+    "variation": "基础事实查询",
+    "tests_mechanism": "memory",
+    "note": "第2次运行应记得第1次查过协议设计",
+    "requires_memory": true,
+    "requires_conflict": false,
+    "requires_code": false
+  },
+  {
+    "id": "T02",
+    "topic": "MCP 生态各年份的工具数量对比",
+    "variation": "数值对比",
+    "tests_mechanism": "code",
+    "note": "对比数据应走代码计算（L07）",
+    "requires_memory": false,
+    "requires_conflict": false,
+    "requires_code": true
+  },
+  {
+    "id": "T03",
+    "topic": "MCP 与传统 function calling 的对比",
+    "variation": "对比分析",
+    "tests_mechanism": "skills",
+    "note": "应触发 comparison-table skill（L03）",
+    "requires_memory": false,
+    "requires_conflict": false,
+    "requires_code": false
+  },
+  {
+    "id": "T04",
+    "topic": "MCP SDK 支持哪些编程语言",
+    "variation": "事实列举",
+    "tests_mechanism": "memory",
+    "note": "第2次应记得上次查过的语言列表",
+    "requires_memory": true,
+    "requires_conflict": false,
+    "requires_code": false
+  },
+  {
+    "id": "T05",
+    "topic": "MCP 协议是否基于 gRPC",
+    "variation": "冲突修正",
+    "tests_mechanism": "conflict",
+    "note": "如果记忆有错误旧结论（基于gRPC），应触发冲突修正",
+    "requires_memory": true,
+    "requires_conflict": true,
+    "requires_code": false
+  },
+  {
+    "id": "T06",
+    "topic": "MCP server 覆盖的场景统计",
+    "variation": "统计分析",
+    "tests_mechanism": "code",
+    "note": "场景分类统计应走代码",
+    "requires_memory": false,
+    "requires_conflict": false,
+    "requires_code": true
+  },
+  {
+    "id": "T07",
+    "topic": "MCP 的演进路线图",
+    "variation": "增量追踪",
+    "tests_mechanism": "memory+reflection",
+    "note": "跨多次运行追踪演进，需要记忆+反思",
+    "requires_memory": true,
+    "requires_conflict": false,
+    "requires_code": false
+  },
+  {
+    "id": "T08",
+    "topic": "MCP 生态的增长率和趋势分析",
+    "variation": "综合分析",
+    "tests_mechanism": "code+memory",
+    "note": "需要代码算增长率+记忆对比历史",
+    "requires_memory": true,
+    "requires_conflict": false,
+    "requires_code": true
+  }
+]
