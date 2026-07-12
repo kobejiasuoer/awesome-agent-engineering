@@ -32,6 +32,34 @@ from .persist import get_async_saver_context
 logger = get_logger("service")
 
 
+def _trace_path() -> Path:
+    """轨迹文件路径（Frontier L08）：每次运行产出 traces/run_<ts>.jsonl。"""
+    from datetime import datetime
+    from pathlib import Path
+    here = Path(__file__).resolve().parent  # src/research_assistant/
+    traces_dir = here.parent.parent / "traces"
+    traces_dir.mkdir(exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return traces_dir / f"run_{ts}.jsonl"
+
+
+def _record_trace(trace_path: Path, step: int, node: str, inp: str, out: str):
+    """记录一条轨迹到 jsonl 文件（Frontier L08）。"""
+    from datetime import datetime, timezone
+    try:
+        rec = {
+            "step": step,
+            "node": node,
+            "input": str(inp)[:500],
+            "output": str(out)[:500],
+            "ts": datetime.now(timezone.utc).isoformat(),
+        }
+        with open(trace_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    except Exception as e:
+        logger.debug(f"轨迹记录失败（不阻塞）：{e}")
+
+
 def _initial_state(topic: str) -> dict:
     """构造一次新研究的输入 State。"""
     return {
@@ -118,6 +146,9 @@ async def stream_research(topic: str, thread_id: str) -> AsyncIterator[dict]:
             config = {"configurable": {"thread_id": thread_id}}
 
             final_state: dict = {}
+            # Frontier L08：轨迹落盘（每次运行产出 traces/run_<ts>.jsonl）
+            trace_file = _trace_path()
+            trace_step = 0
 
             # ⭐ 双模式流：updates（节点进度）+ messages（token 流）
             async for mode, payload in system.astream(
@@ -134,6 +165,10 @@ async def stream_research(topic: str, thread_id: str) -> AsyncIterator[dict]:
                         yield {"event": "progress", "data": json.dumps(progress, ensure_ascii=False)}
                         # 累积最终 state（最后一次 writer 的 report 就是最终报告）
                         final_state.update(delta)
+                        # Frontier L08：记录轨迹
+                        trace_step += 1
+                        _record_trace(trace_file, trace_step, node,
+                                      topic, str(delta)[:500])
 
                 elif mode == "messages":
                     # payload = (message_chunk, metadata)
