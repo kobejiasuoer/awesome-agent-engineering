@@ -19,7 +19,7 @@
 | 🌐 **FastAPI 服务化** | REST + SSE，自带前端页面，Docker 一键部署 | 脚本 → 生产服务 |
 | 🚦 **并发限流** | Semaphore 控制 web_search QPS，防搜索 API 封禁 | 抗突发流量 |
 | 📊 **结构化日志** | 节点进出 + 耗时 + 结果摘要，可接 ELK/Loki | 可观测性 |
-| ✅ **25 单元测试** | 不联网、不调真实 LLM、不污染生产 db | 可回归 |
+| ✅ **104 单元测试** | 不联网、不调真实 LLM、不污染生产 db（含 frontier 79 个新测试）| 可回归 |
 
 ---
 
@@ -246,6 +246,36 @@ research-assistant/
 - **流式设计**：「SSE 双层怎么实现？」→ `astream(stream_mode=["updates","messages"])` 单流双模式，规避嵌套子图 token 不传播的坑
 - **工程化**：「怎么上生产？」→ 异步全链路（async 图必须配 AsyncSqliteSaver）+ Docker volume 持久化 + 健康检查 + 结构化日志
 - **质量保障**：「怎么测的？」→ mock LLM 测节点逻辑、真实图测拓扑、不联网不花钱 25 测试全绿
+
+---
+
+## 🧠 深度智能体（Frontier）
+
+经 [frontier-lessons](../../frontier-lessons/)（智能体前沿课程，13 课）升级，research-assistant 从「搜索→写报告」的一次性系统，进化为 **Deep Research Agent v2**——有记忆、能反思、会写代码、跨会话进化的深度研究智能体。
+
+### 五大前沿机制（每个默认关闭，可独立开关）
+
+| 机制 | 课程 | 核心能力 | 开关 |
+|------|------|---------|------|
+| 🧠 **记忆分层** | [L01-L02](../../frontier-lessons/01_memory/) | 情景(Chroma)+语义(list) MemoryStore，researcher 研究前 recall 旧经验，第二次研究同一主题记得第一次查过什么。反思式写入提炼记忆 + 巩固 + 遗忘。 | `enable_memory` |
+| 📋 **Skills 渐进式加载** | [L03](../../frontier-lessons/03_skills/) | 能力做成文件夹（SKILL.md），Agent 先看一行描述（不占窗口），用到时才加载全文。记忆/skills/RAG/MCP 统一到上下文工程。 | `enable_skills` |
+| 🔄 **双通道反思** | [L04-L05](../../frontier-lessons/05_reflection_research/) | reviewer 升级双通道：文字不合格→重写；事实冲突（新旧结论矛盾）→定向补研→报告写修正说明。Agent 不只改错字，还改错误认知。 | `enable_memory` |
+| 💻 **代码解释器** | [L06-L07](../../frontier-lessons/07_code_interpreter/) | 数值对比/统计走沙箱代码执行（import 白名单+超时+截断），报告附可复算脚本。数字可信度质变。 | `enable_code_interpreter` |
+| 📊 **任务账本** | [L10](../../frontier-lessons/10_long_task/) | TODO 树 sqlite 持久化 + 断点续跑（接着上次做）+ 增量简报（🆕新增/✏️修正/➡️不变）。跨会话推进长任务。 | `enable_ledger` |
+
+### 评估体系（机制收益量化）
+
+- **轨迹评估器**（[L08](../../frontier-lessons/08_trajectory_eval/)）：成功率/步数效率/工具正确率/循环检测/失败归因 + 机制触发检测
+- **Eval Harness**（[L09](../../frontier-lessons/09_eval_harness/)）：开关矩阵 × 8 任务变体 = 机制收益表（`eval_agent/REPORT.md`）
+- 对照 [L00 裸基线](../../frontier-lessons/00_method/)：从失忆→记得、从口算→可复算、从重写→增量
+
+### 架构文档
+
+详见 [`docs/deep-agent-v2.md`](docs/deep-agent-v2.md)——五机制协同图 + 一次运行的数据流 + 开关与降级路径。
+
+### 测试覆盖
+
+104 个单元测试（原 25 + frontier 新增 79），所有开关组合下全绿。新增测试覆盖：记忆(18) / skills(13) / 代码解释器(15) / 轨迹评估(15) / 任务账本(12) / 双通道节点(6)。
 
 ---
 

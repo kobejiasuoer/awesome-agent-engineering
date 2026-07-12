@@ -1,15 +1,15 @@
 # LLM 应用实战课程 📚
 
-这是一套**从零开始、系统掌握大模型应用开发**的实战课程，覆盖 **RAG、Agent、框架工程化、多智能体编排、LLMOps 生产运维** 五大方向。
-面向**会 Python 但刚接触大模型**的开发者，用可运行的代码 + 原理讲解，一步步从原理手写到框架落地，再到多 Agent 协作架构。
+这是一套**从零开始、系统掌握大模型应用开发**的实战课程，覆盖 **RAG、Agent、框架工程化、多智能体编排、LLMOps 生产运维、智能体前沿** 六大方向。
+面向**会 Python 但刚接触大模型**的开发者，用可运行的代码 + 原理讲解，一步步从原理手写到框架落地，再到多 Agent 协作架构，最后深入 Agent 前沿能力。
 
 > 技术栈：智谱 GLM-4 + embedding-3 · Chroma 本地向量库 · LangChain + LangGraph · CrewAI · AutoGen · Python
 
 ---
 
-## 🗺️ 五门课程总览
+## 🗺️ 六门课程总览
 
-本工作区包含**五门递进课程**，建议按顺序学：
+本工作区包含**六门递进课程**，建议按顺序学：
 
 | 课程 | 内容 | 状态 |
 |------|------|------|
@@ -18,8 +18,9 @@
 | 🔧 [框架进阶课程](framework-lessons/) | LangChain + LangGraph 工程化（把手写原理翻译成框架，每课做"手写版 vs 框架版"对比）| ✅ 9/9 完成 |
 | 🔀 [工作流与多智能体编排](workflow-lessons/) | 多 Agent 协作架构（supervisor/swarm/子图/并行/共享态/多模型，三框架横向对比）| ✅ 9/9 完成 |
 | 🛡️ [LLMOps 生产运维](ops-lessons/) | 上线之后：可观测性（日志/追踪/线上评估）→ 安全（鉴权限流/注入攻防/守护栏）→ MCP 集成 → 性能成本（缓存/压测/选型）。把作品集项目从「能跑」推进到「运维就绪」| ✅ 13/13 完成 |
+| 🧠 [智能体前沿](frontier-lessons/) | Agent 记忆/反思/Code Agent/轨迹评估/上下文工程/长任务——教未收敛的前沿，把 research-assistant 养成跨会话进化的深度智能体（Deep Research Agent v2）。**每课有流派对比 + 设计实验验证收益** | ✅ 13/13 完成 |
 
-> **学习路径**：先学 RAG（懂检索原理）→ 再学 Agent（懂自主决策）→ 再学框架进阶（工程化落地）→ 再学多智能体编排（架构师进阶）→ 最后学 LLMOps（把项目推进到运维就绪、可讲完整运维故事）。
+> **学习路径**：先学 RAG（懂检索原理）→ 再学 Agent（懂自主决策）→ 再学框架进阶（工程化落地）→ 再学多智能体编排（架构师进阶）→ 再学 LLMOps（运维就绪）→ 最后学智能体前沿（让 Agent 自主进化）。
 
 ---
 
@@ -30,7 +31,7 @@
 | 项目 | 内容 | 状态 |
 |------|------|------|
 | 📚 [企业知识库问答系统](portfolio-projects/knowledge-base-qa/) | 生产级 RAG：混合检索 + 智谱 rerank + 防幻觉引用 + ragas 评估。**经 ops-lessons 升级为运维就绪 v2**：结构化日志/Langfuse 追踪/线上评估闭环 + key 鉴权限流 + 注入攻防守护栏 + MCP Server（可被 Agent 调用）+ 语义缓存/压测/成本选型。| ✅ 运维就绪 |
-| 🔬 [AI 研究分析助手](portfolio-projects/research-assistant/) | 多智能体并行研究系统：真实联网搜索 + 审稿回路 + 多模型降本 + SSE 流式 + SqliteSaver 持久化 + FastAPI 服务化 + Docker 部署。**经 ops-lessons L09 接入 MCP**，研究时可查 kb-qa 内部知识库（内部+联网双源）。| ✅ 完成 |
+| 🔬 [AI 研究分析助手](portfolio-projects/research-assistant/) | 多智能体并行研究系统：真实联网搜索 + 审稿回路 + 多模型降本 + SSE 流式 + SqliteSaver 持久化 + FastAPI 服务化 + Docker 部署。**经 ops-lessons L09 接入 MCP**（内部+联网双源）。**经 frontier-lessons 升级为 Deep Research Agent v2**：Agent 记忆（情景/语义分层）+ 反思式双通道 reviewer（冲突修正）+ CodeAct 代码解释器（可复算）+ Skills 渐进式加载 + 任务账本（跨会话增量简报）+ 轨迹评估（机制收益量化）。| ✅ Deep v2 |
 
 > 这是课程能力的**生产级落地**——不是 demo，是能直接部署、能扛真实流量、能讲完整运维故事的 AI 应用服务。
 > 两个项目通过 MCP 标准协议打通（见 [ops-lessons L09](ops-lessons/09_mcp_client/)）。
@@ -139,6 +140,30 @@
 | 13 | [毕业整合：运维就绪 v2](ops-lessons/13_capstone/) | 一张运维面板 + 生产上线检查清单串起全部 12 课 |
 
 > 已完成全部 **13 节课** 🎉。教学 code.py 全部零依赖或有 mock 降级路径可独立跑；落地改动写进 kb-qa 并附「## 落地清单」。跑不了真实外部服务（Langfuse/Docker/压测）的地方均**诚实标注未实测**并给降级路径。
+
+---
+
+## 🧠 课程六：智能体前沿（共 13 节课）
+
+前五门课教的是**已收敛的知识**（RAG 怎么切、ReAct 怎么写），本课教的是**未收敛的前沿**——Agent 记忆、反思、Code Agent、轨迹评估、上下文工程，业界没有标准答案。因此课程风格变了：README 不讲「标准做法」，讲「有哪几种流派、取舍是什么、我们选 X 因为……」；代码是「手写核心机制 + 设计实验验证有没有用」。所有改动落到 **research-assistant**，把它从「搜索→写报告」的一次性系统养成**跨会话进化的深度研究智能体（Deep Research Agent v2）**。六个模块：
+
+| # | 课程 | 你会学到 |
+|---|------|----------|
+| 00 | [方法预热](frontier-lessons/00_method/) | 论文三遍读法 + 拆 LangGraph 源码 + 跑失忆基线（全程对照） |
+| 01 | [记忆分层](frontier-lessons/01_memory/) | 情景(Chroma)+语义(list) MemoryStore，researcher 接入 recall |
+| 02 | [反思式写入](frontier-lessons/02_reflection_write/) | reflect_and_store 提炼记忆 + consolidate 巩固 + 遗忘策略 |
+| 03 | [Skills 与上下文工程](frontier-lessons/03_skills/) | 渐进式 skill_loader，记忆/skills/RAG/MCP 统一到上下文工程 |
+| 04 | [Reflexion 手写](frontier-lessons/04_reflexion/) | 三组件 loop + 盲目重试 vs 反思重试对比 + 消融实验 |
+| 05 | [反思进研究回路](frontier-lessons/05_reflection_research/) | 双通道 reviewer（文字+事实）+ 冲突检测 + 定向补研修正 |
+| 06 | [CodeAct 手写](frontier-lessons/06_codeact/) | 代码作为行动空间 + 进程级沙箱（import 白名单/超时/截断） |
+| 07 | [代码解释器落地](frontier-lessons/07_code_interpreter/) | code_interpreter 接入 writer，报告数字可复算 |
+| 08 | [轨迹评估](frontier-lessons/08_trajectory_eval/) | TrajectoryEvaluator：成功率/步数/循环/归因 + 机制触发检测 |
+| 09 | [Eval Harness](frontier-lessons/09_eval_harness/) | 开关矩阵 × 任务集 = 机制收益表（回归式评估） |
+| 10 | [长任务](frontier-lessons/10_long_task/) | TaskLedger：TODO 树 + 断点续跑 + 增量简报 |
+| 11 | [毕业整合](frontier-lessons/11_capstone/) | Deep Research v2：五机制协同 + 架构文档 + 收益表 |
+| 12 | [前沿追踪方法](frontier-lessons/12_frontier_tracking/) | 三遍读法完整版 + 框架评估清单 + 多 Agent 记忆共享最小复现 |
+
+> 已完成全部 **13 节课** 🎉。**两条贯穿主线**：①评估主线（L00 立基线→L08 建评估器→L09 harness 量化每个机制收益）；②上下文工程主线（记忆/skills/RAG/MCP 统一到「窗口里放什么」一个母题）。每课 README 有「流派对比」小节 + 至少一道「设计实验验证」练习。104 个单元测试全绿，所有新机制默认关闭、降级路径完好。
 
 ---
 
