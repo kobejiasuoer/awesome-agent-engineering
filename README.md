@@ -195,16 +195,17 @@ python rag-lessons/01_getting_started/code.py
 
 ```
 RAG-test/
-├── README.md                  ← 你在这里：五门课程 + 作品集项目总览
-├── requirements.txt           ← 依赖（五门课统一）
+├── README.md                  ← 你在这里：六门课程 + 作品集项目总览
+├── requirements.txt           ← 依赖（六门课统一）
 ├── .env.example               ← API Key 配置模板
-├── data/sample_docs/          ← 练习用的示例文档（五门课共用）
+├── data/sample_docs/          ← 练习用的示例文档（六门课共用）
 ├── rag-lessons/               ← 课程一：RAG 手写（9 课，已完成）
 ├── agent-lessons/             ← 课程二：Agent 手写（9 课，已完成）
 ├── framework-lessons/         ← 课程三：框架进阶（9 课，已完成）
 ├── workflow-lessons/          ← 课程四：工作流与多智能体编排（9 课，已完成）
 ├── ops-lessons/               ← 课程五：LLMOps 生产运维（13 课，已完成）
-├── portfolio-projects/        ← 🚀 生产级作品集项目（学完课程后的落地，ops-lessons 主战场）
+├── frontier-lessons/          ← 课程六：智能体前沿（13 课，已完成）
+├── portfolio-projects/        ← 🚀 生产级作品集项目（学完课程后的落地，ops/frontier 主战场）
 │   ├── knowledge-base-qa/     ←   企业知识库问答（RAG，运维就绪 v2）
 │   └── research-assistant/    ←   AI 研究分析助手（多智能体 + FastAPI + Docker）
 └── docs/                      ← 设计文档与实现计划

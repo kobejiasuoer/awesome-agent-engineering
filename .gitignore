@@ -20,4 +20,15 @@ chroma_db_*/
 # 推广/营销文案（仅本地用，不入库）
 小红书文案.md
 推广帖子.md
+
+# 学习计划任务书（交给 AI 逐课生成用，仅本地留存，不入库）
+下一阶段学习计划-*.md
+
+# 各课 code.py 跑出的本地产物（记忆库/账本/演示数据，每台机器自己生成）
 demo_mem/
+frontier-lessons/*/mem_raw/
+frontier-lessons/*/mem_refined/
+frontier-lessons/*/mem_rule/
+frontier-lessons/*/demo_*/
+*.db
+*.db-journal
