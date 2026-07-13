@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>弹窗劫持页 · 测试页</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 40px auto; padding: 0 16px; color: #222; }
+    /* 遮罩盖住整个页面，必须先点「同意」才能交互正文 */
+    #overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center; z-index: 999;
+    }
+    #overlay .box {
+      background: #fff; padding: 24px 32px; border-radius: 8px; text-align: center; max-width: 360px;
+    }
+    #overlay button { margin: 8px; padding: 8px 16px; cursor: pointer; }
+    #content { display: none; }
+    .field b { display: inline-block; width: 90px; }
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <div class="box">
+      <p>🍪 本站使用 cookie。继续浏览即视为同意。</p>
+      <button id="accept">同意</button>
+      <button id="reject">拒绝</button>
+    </div>
+  </div>
+  <div id="content">
+    <h1>📋 正文（弹窗关闭后才可见/可交互）</h1>
+    <div class="field"><b>版本号：</b><span id="ver">v0.7.7</span></div>
+    <div class="field"><b>发布日期：</b><span id="date">2024-07-07</span></div>
+    <div class="field"><b>变更：</b>新增 Z 功能</div>
+    <a href="#" id="download">下载链接（被遮罩时点不到）</a>
+  </div>
+  <script>
+    document.getElementById('accept').addEventListener('click', function () {
+      document.getElementById('overlay').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+    });
+    document.getElementById('reject').addEventListener('click', function () {
+      document.getElementById('overlay').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+    });
+  </script>
+</body>
+</html>

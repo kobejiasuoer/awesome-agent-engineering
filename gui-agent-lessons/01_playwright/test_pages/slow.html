@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>慢加载页 · 测试页</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 40px auto; padding: 0 16px; color: #222; }
+    .skeleton { background: #eee; height: 20px; margin: 8px 0; border-radius: 4px; }
+    #late { margin-top: 16px; padding: 12px; background: #e8f5e9; border-radius: 6px; }
+    .meta { color: #888; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>🐢 慢加载页</h1>
+  <p class="meta">关键内容在页面加载后 1.5 秒才由 JS 渲染。模拟动态渲染网站——搜索 API 不执行 JS 永远拿不到，浏览器必须等。</p>
+  <div class="skeleton"></div>
+  <div class="skeleton"></div>
+  <div class="skeleton"></div>
+  <div id="late">加载中…</div>
+  <script>
+    // 关键字段延迟出现：测试 auto-wait / 显式等待是否奏效
+    setTimeout(function () {
+      document.getElementById('late').innerHTML =
+        '✅ 版本号：<b id="ver">v0.9.9</b><br>' +
+        '✅ 发布日期：<b id="date">2024-09-20</b><br>' +
+        '✅ 变更：修复 X、优化 Y';
+    }, 1500);
+  </script>
+</body>
+</html>
