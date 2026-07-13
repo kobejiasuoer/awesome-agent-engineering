@@ -159,7 +159,73 @@ async def test_browse_for_evidence_failure_tolerant(monkeypatch):
     assert len(evs) == 2  # fail 的跳过，不影响其他
 
 
-# ── 单例 + 开关单测 ──
+# ── deep_browse（L10 多步证据链）单测 ──
+
+
+@pytest.mark.asyncio
+async def test_deep_browse_multi_step(monkeypatch):
+    """deep_browse 应跟链接多步取证，产出按序证据链。"""
+    tool = BrowserTool()
+    # mock _new_page 返回一个假 page，模拟跟 3 个链接
+    class FakePage:
+        def __init__(self):
+            self.url_val = "http://127.0.0.1:8765/start"
+            self._step = 0
+        async def goto(self, url, **kw): self.url_val = url; return True
+        async def wait_for_load_state(self, *a, **kw): return None
+        async def inner_text(self, sel):
+            return f"第{self._step}页内容 v0.{self._step}.0"
+        async def title(self): return f"标题{self._step}"
+        async def locator(self, sel):
+            class L:
+                async def all(self): return []
+            return L()
+        async def close(self): pass
+        @property
+        def url(self): return self.url_val
+    fp = FakePage()
+    async def fake_new_page(): return fp
+    monkeypatch.setattr(tool, "_new_page", fake_new_page)
+    # _safe_goto 直接放行（已 mock goto）
+    async def fake_goto(page, url): return True
+    monkeypatch.setattr(tool, "_safe_goto", fake_goto)
+    # _pick_next_link 第 0/1 步返回下一个 URL，第 2 步返回 None（停）
+    step_counter = [0]
+    async def fake_pick(page, hint, allowed):
+        step_counter[0] += 1
+        if step_counter[0] <= 2:
+            return f"http://127.0.0.1:8765/page{step_counter[0]}"
+        return None
+    monkeypatch.setattr(tool, "_pick_next_link", fake_pick)
+
+    evs = await tool.deep_browse("q", "http://127.0.0.1:8765/start", max_steps=4)
+    # 应拿到 3 条证据（start + page1 + page2，第3步无链接停）
+    assert len(evs) == 3
+    assert all(e.url.startswith("http://127.0.0.1") for e in evs)
+    assert all(e.accessed_at for e in evs)
+
+
+@pytest.mark.asyncio
+async def test_deep_browse_stops_on_non_allowlist(monkeypatch):
+    """deep_browse 遇非 allowlist URL 应停。"""
+    tool = BrowserTool()
+    # 第一个入口就是 evil.com → _safe_goto 返回 False（allowlist 拦）
+    async def fake_goto(page, url):
+        return check_url_allowed(url, tool._allowed_domains)
+    monkeypatch.setattr(tool, "_safe_goto", fake_goto)
+    class FakePage:
+        async def close(self): pass
+    monkeypatch.setattr(tool, "_new_page", lambda: _async_return(FakePage()))
+    evs = await tool.deep_browse("q", "http://evil.com/start", max_steps=4)
+    assert evs == []  # 入口被拦，零证据
+
+
+def _async_return(val):
+    async def _f(): return val
+    return _f()
+
+
+
 
 
 def test_get_browser_tool_disabled(monkeypatch):

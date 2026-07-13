@@ -239,6 +239,95 @@ class BrowserTool:
             lines.append(f"  访问时间: {ev.accessed_at}")
         return "\n".join(lines)
 
+    async def deep_browse(self, query: str, entry_url: str, max_steps: int = 4,
+                          link_hint: str = "") -> list[Evidence]:
+        """多步深度浏览：从入口页出发，跟链接跨页取证（L10 证据链）。
+
+        与 browse_for_evidence 的区别：
+            - browse_for_evidence: 并行开多个独立详情页（广度）
+            - deep_browse: 从一个入口跟链接深入（深度），适合「翻页/跟链接」场景
+
+        Args:
+            query: 研究子问题
+            entry_url: 入口页 URL（如搜索结果列表页）
+            max_steps: 最多跟几步链接（成本控制）
+            link_hint: 链接提示词（如含"release/版本"的链接优先跟）
+        Returns:
+            证据链（每步一条 Evidence，按访问顺序）
+        """
+        evidences: list[Evidence] = []
+        page = await self._new_page()
+        current_url = entry_url
+        try:
+            for step in range(max_steps):
+                if not check_url_allowed(current_url, self._allowed_domains):
+                    log.info(f"deep_browse: 域名拦截，停在第{step}步 {current_url}")
+                    break
+                if not await self._safe_goto(page, current_url):
+                    break
+                try:
+                    await page.wait_for_load_state("domcontentloaded", timeout=3000)
+                except Exception:
+                    pass
+
+                from datetime import datetime, timezone
+                content = await page.inner_text("body")
+                content = (content or "").strip()[:2000]
+                title = await page.title()
+                accessed = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+                # 注入扫描
+                hits = scan_injection(content)
+                if hits:
+                    log.warning(f"deep_browse: 检出注入 {hits} @ {current_url}")
+                    content = f"[⚠️ 注入隔离] {content}"
+                evidences.append(Evidence(
+                    content=content, url=current_url, accessed_at=accessed,
+                    page_title=title, snapshot=content[:200]))
+
+                # 找下一步要跟的链接（含 hint 的优先）
+                next_url = await self._pick_next_link(page, link_hint, self._allowed_domains)
+                if not next_url:
+                    log.info(f"deep_browse: 第{step}步无更多可跟链接，停")
+                    break
+                # 相对 URL 解析
+                if not next_url.startswith(("http://", "https://")):
+                    next_url = f"{urlparse(current_url).scheme}://{urlparse(current_url).hostname}" + next_url
+                current_url = next_url
+        finally:
+            await page.close()
+        log.info(f"deep_browse: 为「{query[:30]}」跟了 {len(evidences)} 步")
+        return evidences
+
+    async def _pick_next_link(self, page, hint: str, allowed: set[str]) -> str | None:
+        """从当前页挑下一个要跟的链接（含 hint 优先，过 allowlist）。"""
+        try:
+            links = await page.locator("a").all()
+            for link in links:
+                href = await link.get_attribute("href")
+                if not href or href.startswith("#"):
+                    continue
+                # 绝对化
+                if not href.startswith(("http://", "https://")):
+                    base = page.url
+                    href = f"{urlparse(base).scheme}://{urlparse(base).hostname}" + href
+                if not check_url_allowed(href, allowed):
+                    continue
+                # hint 优先
+                if hint and hint.lower() in (await link.inner_text()).lower():
+                    return href
+            # 无 hint 命中，取第一个 allowlist 内的链接
+            for link in links:
+                href = await link.get_attribute("href")
+                if href and not href.startswith("#"):
+                    if not href.startswith(("http://", "https://")):
+                        base = page.url
+                        href = f"{urlparse(base).scheme}://{urlparse(base).hostname}" + href
+                    if check_url_allowed(href, allowed):
+                        return href
+        except Exception:
+            pass
+        return None
+
 
 # ──────────────────────────────────────────────────────────────
 # 单例（仿 memory_store 模式：懒加载，enable_browser=false 时返回 None）
