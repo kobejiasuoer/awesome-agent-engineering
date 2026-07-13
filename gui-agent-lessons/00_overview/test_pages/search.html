@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>搜索结果 · 测试页</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 40px auto; padding: 0 16px; color: #222; }
+    h1 { font-size: 20px; }
+    .search { display: flex; gap: 8px; margin: 16px 0; }
+    input[name=q] { flex: 1; padding: 8px; font-size: 15px; border: 1px solid #aaa; border-radius: 4px; }
+    button { padding: 8px 16px; cursor: pointer; }
+    .result { padding: 10px 0; border-bottom: 1px solid #eee; }
+    .result a { color: #1769aa; font-weight: 600; text-decoration: none; }
+    .meta { color: #777; font-size: 12px; }
+    .pager { margin: 20px 0; }
+    .pager a, .pager span { margin: 0 4px; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; text-decoration: none; color: #1769aa; }
+    .pager .cur { background: #1769aa; color: #fff; border-color: #1769aa; }
+  </style>
+</head>
+<body>
+  <h1 id="title">搜索结果：<span id="kw">LangGraph</span></h1>
+  <form class="search" action="search.html" method="get">
+    <input name="q" id="q" autocomplete="off">
+    <button type="submit">搜索</button>
+  </form>
+  <p class="meta">共 12 条结果，分 3 页展示（每页 4 条）。</p>
+  <div id="results"></div>
+  <div class="pager" id="pager"></div>
+
+  <script>
+    // URL 参数解析 + 分页（模拟 GitHub releases 列表的翻页交互）
+    const params = new URLSearchParams(location.search);
+    let kw = params.get('q') || 'LangGraph';
+    let page = parseInt(params.get('page') || '1', 10);
+    document.getElementById('kw').textContent = kw;
+    document.getElementById('q').value = kw;
+
+    // 生成 12 条假数据（与 kw 无关，保证翻页确定性）
+    const items = Array.from({length: 12}, (_, i) => ({
+      id: i + 1,
+      tag: kw + '-v0.' + (12 - i) + '.0',
+      date: '2024-' + String(12 - i).padStart(2, '0') + '-15',
+      title: kw + ' 第 ' + (12 - i) + ' 次发布：性能与稳定性改进',
+    }));
+
+    const perPage = 4;
+    const totalPages = Math.ceil(items.length / perPage);
+    page = Math.min(Math.max(page, 1), totalPages);
+    const slice = items.slice((page - 1) * perPage, page * perPage);
+
+    document.getElementById('results').innerHTML = slice.map(it =>
+      `<div class="result"><a href="detail.html?id=${it.id}&kw=${encodeURIComponent(kw)}">${it.tag}</a>
+       <div class="meta">${it.date} · ${it.title}</div></div>`
+    ).join('');
+
+    // 分页器：上一页 / 页码 / 下一页
+    let pagerHtml = '';
+    if (page > 1) pagerHtml += `<a href="search.html?q=${encodeURIComponent(kw)}&page=${page-1}">上一页</a>`;
+    for (let i = 1; i <= totalPages; i++) {
+      pagerHtml += i === page
+        ? `<span class="cur">${i}</span>`
+        : `<a href="search.html?q=${encodeURIComponent(kw)}&page=${i}">${i}</a>`;
+    }
+    if (page < totalPages) pagerHtml += `<a href="search.html?q=${encodeURIComponent(kw)}&page=${page+1}">下一页</a>`;
+    document.getElementById('pager').innerHTML = pagerHtml;
+  </script>
+</body>
+</html>

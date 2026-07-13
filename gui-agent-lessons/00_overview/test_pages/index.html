@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>本地搜索门户 · 测试页</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 40px auto; padding: 0 16px; color: #222; }
+    h1 { font-size: 22px; }
+    .search { display: flex; gap: 8px; margin: 20px 0; }
+    input[name=q] { flex: 1; padding: 8px; font-size: 15px; border: 1px solid #aaa; border-radius: 4px; }
+    button { padding: 8px 16px; cursor: pointer; }
+    .hint { color: #666; font-size: 13px; }
+    a { color: #1769aa; }
+  </style>
+</head>
+<body>
+  <h1>🌐 本地搜索门户</h1>
+  <p class="hint">这是 GUI Agent 课程的本地镜像首页。模拟一个项目发布追踪站点，所有操作均离线可复现。</p>
+  <form class="search" action="search.html" method="get">
+    <input name="q" placeholder="输入项目名，如 LangGraph" autocomplete="off">
+    <button type="submit">搜索</button>
+  </form>
+  <p>快捷入口：
+    <a href="search.html?q=LangGraph">LangGraph 发布列表</a> ｜
+    <a href="search.html?q=CrewAI">CrewAI 发布列表</a>
+  </p>
+</body>
+</html>

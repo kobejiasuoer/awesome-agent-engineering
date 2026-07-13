@@ -25,3 +25,11 @@ langchain-chroma>=0.1.0        # Chroma 独立集成包（新写法）
 # LangGraph：状态化 Agent 编排（L06-L09）
 langgraph>=0.2.0
 pydantic>=2.0                  # 结构化输出（L02 起用 PydanticOutputParser）
+
+# ---- 课程七 GUI Agent 起新增（gui-agent-lessons/）----
+# 浏览器自动化：L01 起 BrowserSession 控制，L09 落地 async 版接 research-assistant
+playwright>=1.40.0
+# 浏览器二进制单独装（国内镜像，只装 chromium）：
+#   PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright \
+#     python -m playwright install chromium
+pillow>=10.0.0                 # L05 视觉路线：截图 SoM 标注（画框编号）

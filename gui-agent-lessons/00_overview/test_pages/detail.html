@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>发布详情 · 测试页</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 40px auto; padding: 0 16px; color: #222; }
+    h1 { font-size: 20px; }
+    .tag { font-size: 26px; font-weight: 700; color: #1769aa; }
+    .meta { color: #777; font-size: 13px; margin: 6px 0 18px; }
+    .notes li { margin: 6px 0; line-height: 1.6; }
+    .field { margin: 8px 0; }
+    .field b { display: inline-block; width: 90px; }
+    a { color: #1769aa; }
+    .back { margin-top: 24px; }
+  </style>
+</head>
+<body>
+  <p><a href="search.html" id="back">← 返回列表</a></p>
+  <div class="tag" id="tag">LangGraph-v0.12.0</div>
+  <div class="meta" id="meta">发布于 2024-12-15</div>
+  <div class="field"><b>版本号：</b><span id="ver">v0.12.0</span></div>
+  <div class="field"><b>发布日期：</b><span id="date">2024-12-15</span></div>
+  <h2>变更要点</h2>
+  <ul class="notes" id="notes"></ul>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const id = parseInt(params.get('id') || '1', 10);
+    const kw = params.get('kw') || 'LangGraph';
+    const ver = 'v0.' + (12 - id + 1) + '.0';
+    const date = '2024-' + String(12 - id + 1).padStart(2, '0') + '-15';
+    const tag = kw + '-' + ver;
+    document.getElementById('tag').textContent = tag;
+    document.getElementById('ver').textContent = ver;
+    document.getElementById('date').textContent = date;
+    document.getElementById('meta').textContent = '发布于 ' + date;
+    document.getElementById('back').href = 'search.html?q=' + encodeURIComponent(kw);
+    document.getElementById('notes').innerHTML = [
+      '新增断点续跑支持，长任务可恢复执行',
+      '修复并行子图偶发死锁问题',
+      '性能：状态序列化体积减少约 30%',
+    ].map(t => `<li>${t}</li>`).join('');
+  </script>
+</body>
+</html>
