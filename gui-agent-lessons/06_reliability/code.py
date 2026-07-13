@@ -126,7 +126,10 @@ def run_hardened_agent(task: str, session, llm, max_steps: int = 12,
     layer = ReliabilityLayer(loop_n=2, max_strategy_changes=3)
     history: list = []
     session.goto(start_url)
-    session.wait_for_selector("body")
+    try:
+        session.page.wait_for_load_state("domcontentloaded", timeout=5000)
+    except Exception:
+        pass
     answer = ""
     loops_detected = 0
     strategy_changes = 0

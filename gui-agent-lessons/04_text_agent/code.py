@@ -190,7 +190,12 @@ def run_agent(task: str, session, llm, max_steps: int = 12,
     """
     history: list[Step] = []
     session.goto(start_url)
-    session.wait_for_selector("body")
+    # 等 DOM 就绪（用 domcontentloaded，不用 wait_for_selector("body")——
+    # 弹窗页的遮罩盖住 body 会让 body 可见性判定失败而超时）
+    try:
+        session.page.wait_for_load_state("domcontentloaded", timeout=5000)
+    except Exception:
+        pass
     answer = ""
 
     for step in range(1, max_steps + 1):
