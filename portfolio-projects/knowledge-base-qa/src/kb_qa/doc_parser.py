@@ -95,6 +95,126 @@ def _is_table_page(page: fitz.Page) -> bool:
     return line_count >= _TABLE_LINE_THRESHOLD
 
 
+# ══════════════════════════════════════════════════════════════════
+# 表格结构化（L02）：从串行文本到 markdown / HTML
+# ══════════════════════════════════════════════════════════════════
+def extract_tables(pdf_path: str | Path) -> list[list[list[str]]]:
+    """用 pdfplumber 抽取 PDF 里所有表格，返回二维列表的列表。
+
+    每个表格是 list[list[str]]（行 × 列），合并单元格的延续位是空串 ''。
+    例：薪酬表第 1 行 ['职级', '薪酬（元/月）', '', '绩效系数']——
+        '' 表示「薪酬」合并跨了 2 列，第 2 列是它的延续。
+
+    为什么用 pdfplumber 而非手写：它基于文本片段的坐标对齐判网格，
+    比单纯数线段更可靠（无边框表也能抽），且 pip 友好、CPU 可跑。
+    """
+    import pdfplumber  # 延迟导入：ocr_engine/table 处理才需要
+
+    path = Path(pdf_path)
+    all_tables: list[list[list[str]]] = []
+    with pdfplumber.open(str(path)) as pdf:
+        for page in pdf.pages:
+            for table in page.find_tables():
+                rows = page.within_bbox(table.bbox).extract_table() or []
+                # 规整：每行补齐到等长，None → ''
+                width = max((len(r) for r in rows), default=0)
+                normalized = [[(c or "") for c in r] + [""] * (width - len(r)) for r in rows]
+                if normalized:
+                    all_tables.append(normalized)
+    return all_tables
+
+
+def table_to_markdown(rows: list[list[str]]) -> str:
+    """二维表格 → markdown 表格字符串。
+
+    合并单元格的空位保留为空（markdown 没有 colspan 语法，靠空单元格承载）。
+    这是 L02 的默认表示（config.table_format='markdown'）：便宜、通用、LLM 认得。
+    表头冗余：第一行作表头，后面每行都能对照——跨页表每段都带表头不断头。
+    """
+    if not rows:
+        return ""
+    width = max(len(r) for r in rows)
+    rows = [r + [""] * (width - len(r)) for r in rows]
+    header = "| " + " | ".join(rows[0]) + " |"
+    separator = "|" + "|".join(["---"] * width) + "|"
+    body = "\n".join("| " + " | ".join(r) + " |" for r in rows[1:])
+    return f"{header}\n{separator}\n{body}" if body else f"{header}\n{separator}"
+
+
+def table_to_html(rows: list[list[str]]) -> str:
+    """二维表格 → HTML 表格（带 colspan/rowspan，最忠实但最贵）。
+
+    合并单元格：横向合并用 colspan（空位且左边非空 → 合并到左边）。
+    markdown 表达不了的复杂合并，HTML 能精确承载——代价是 token 多 ~2.5 倍。
+    本课对照实验用它作「最忠实」基准，默认不用（config.table_format 默认 markdown）。
+    """
+    if not rows:
+        return ""
+    width = max(len(r) for r in rows)
+    rows = [r + [""] * (width - len(r)) for r in rows]
+    lines = ["<table>"]
+    for row in rows:
+        lines.append("  <tr>")
+        skip = 0  # 当前列被 colspan 跳过的格数
+        for j, cell in enumerate(row):
+            if skip > 0:
+                skip -= 1
+                continue
+            if cell == "":
+                continue  # 空单元格：合并的延续位，不输出
+            # 算 colspan：右边连续多少个空格
+            span = 1
+            while j + span < width and row[j + span] == "":
+                span += 1
+            attr = f' colspan="{span}"' if span > 1 else ""
+            lines.append(f"    <td{attr}>{cell}</td>")
+        lines.append("  </tr>")
+    lines.append("</table>")
+    return "\n".join(lines)
+
+
+def table_to_naive(rows: list[list[str]]) -> str:
+    """二维表格 → 朴素串行文本（L00/L01 的现状，对照基准）。
+
+    把所有单元格拍平成一维，行列对应完全丢失。保留它只为对照实验：
+    证明「串行化」是表格进上下文的灾难起点。
+    """
+    return "\n".join(c for row in rows for c in row if c)
+
+
+def _extract_table_on_page(pdf_path: Path, page_idx: int) -> str:
+    """抽指定页的表格，按 config.table_format 渲染成 markdown 或 HTML。
+
+    parse_pdf 表格分支调用：把「串行文本」升级成结构化表示。
+    一页可能有多个表，这里取第一个（教学够用；多表场景见 exercise）。
+    抽取失败（pdfplumber 没找到表）时退化为串行文本兜底，不崩。
+    """
+    try:
+        import pdfplumber  # 延迟导入
+
+        with pdfplumber.open(str(pdf_path)) as pdf:
+            if page_idx >= len(pdf.pages):
+                return ""
+            page = pdf.pages[page_idx]
+            tables = page.find_tables()
+            if not tables:
+                return ""
+            rows = page.within_bbox(tables[0].bbox).extract_table() or []
+            # 规整等长
+            width = max((len(r) for r in rows), default=0)
+            rows = [[(c or "") for c in r] + [""] * (width - len(r)) for r in rows]
+    except Exception:
+        # pdfplumber 抽不到（极端版面）：退化为空，不崩
+        return ""
+
+    # 按配置选表示：markdown（默认，便宜）或 html（保合并结构，贵）
+    from .config import settings
+
+    if settings.table_format == "html":
+        return table_to_html(rows)
+    return table_to_markdown(rows)
+
+
 def parse_pdf(pdf_path: str | Path) -> list[Element]:
     """解析 PDF，返回带类型和坐标的元素流。
 
@@ -134,12 +254,13 @@ def parse_pdf(pdf_path: str | Path) -> list[Element]:
                 )
             )
         elif is_table:
-            # 表格页：有文本层但被拍平成串行 → table 元素
-            # content 暂存串行文本，L02 会用 pdfplumber 升级成 markdown/HTML
+            # 表格页：L02 升级——用 pdfplumber 抽结构化，不再用串行文本
+            # content 是 markdown（默认）或 HTML（config.table_format 控制）
+            table_content = _extract_table_on_page(path, page_idx)
             elements.append(
                 Element(
                     type="table",
-                    content=page_text,
+                    content=table_content,
                     page=page_num,
                     bbox=_full_page_bbox(page),
                     source=source,

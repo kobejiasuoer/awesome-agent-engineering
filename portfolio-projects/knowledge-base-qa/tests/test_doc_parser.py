@@ -9,7 +9,15 @@ from pathlib import Path
 
 import pytest
 
-from kb_qa.doc_parser import Element, parse_pdf, summarize
+from kb_qa.doc_parser import (
+    Element,
+    extract_tables,
+    parse_pdf,
+    summarize,
+    table_to_html,
+    table_to_markdown,
+    table_to_naive,
+)
 
 # 毒文档（L00 随课交付）：6 页，含扫描/表格/图表/图文混排
 # tests/ → knowledge-base-qa/ → portfolio-projects/ → RAG-test/（仓库根）
@@ -90,6 +98,72 @@ class TestParsePdf:
         assert meta["element_type"] == "text"
         assert isinstance(meta["bbox"], str)
         assert meta["source"] == "a.pdf"
+
+    def test_table_element_carries_structured_content(self):
+        """L02：table 元素 content 是 markdown（不再串行），行列对应保留。"""
+        elements = parse_pdf(POISON_PDF)
+        p4_tables = [e for e in elements if e.page == 4 and e.type == "table"]
+        assert len(p4_tables) == 1
+        content = p4_tables[0].content
+        # markdown 表格特征：有 | 分隔
+        assert "|" in content
+        # 行列对应保留：P5 和它的基本工资 22000 应该在同一行
+        for line in content.split("\n"):
+            if "P5" in line:
+                assert "22000" in line  # 同行 = 结构保留（L00 串行化时做不到）
+
+
+class TestTableRepresentation:
+    """L02 表格三种表示：markdown / HTML / 串行，对照实验的基础。"""
+
+    # 薪酬表的二维数据（模拟 pdfplumber 抽取结果，含合并表头的空位）
+    SAMPLE_ROWS = [
+        ["职级", "薪酬（元/月）", "", "绩效系数"],
+        ["", "基本工资", "岗位津贴", "范围"],
+        ["P3", "12000", "3000", "0.8 - 1.2"],
+        ["P5", "22000", "6000", "1.0 - 1.5"],
+    ]
+
+    def test_markdown_preserves_row_column_association(self):
+        """markdown：P5 的基本工资 22000 和 P5 在同一行（结构保留）。"""
+        md = table_to_markdown(self.SAMPLE_ROWS)
+        lines = md.split("\n")
+        # 找到 P5 所在行
+        p5_line = next(line for line in lines if "P5" in line)
+        assert "22000" in p5_line  # 同行 = 列对应保留
+        assert "6000" in p5_line   # 岗位津贴也在同行
+
+    def test_html_emits_colspan_for_merged_cells(self):
+        """HTML：合并单元格（薪酬跨 2 列）应输出 colspan="2"。"""
+        html = table_to_html(self.SAMPLE_ROWS)
+        assert "<table>" in html and "</table>" in html
+        # 「薪酬（元/月）」跨 2 列 → 应有 colspan="2"
+        assert 'colspan="2"' in html
+
+    def test_naive_loses_structure(self):
+        """串行（现状）：P5 和 22000 被打散，无法判断列对应。"""
+        naive = table_to_naive(self.SAMPLE_ROWS)
+        # 串行化后每个值单独一行，P5 和 22000 不在同一「行」
+        lines = naive.split("\n")
+        p5_line = next((i for i, l in enumerate(lines) if l == "P5"), -1)
+        idx_22000 = next((i for i, l in enumerate(lines) if l == "22000"), -1)
+        # 它们不相邻（中间隔着 6000 等其他列值），证明结构丢失
+        assert p5_line != idx_22000
+
+    def test_markdown_smaller_than_html(self):
+        """成本对比：markdown 字符数 < HTML（合并单元格场景）。"""
+        md = table_to_markdown(self.SAMPLE_ROWS)
+        html = table_to_html(self.SAMPLE_ROWS)
+        assert len(md) < len(html)
+
+    def test_extract_tables_from_poison_pdf(self):
+        """pdfplumber 能从毒文档抽出薪酬表的二维结构。"""
+        tables = extract_tables(POISON_PDF)
+        assert len(tables) >= 1
+        # 第一个表应包含 P5 / 22000 等
+        flat = [c for row in tables[0] for c in row]
+        assert "P5" in flat
+        assert "22000" in flat
 
 
 class TestIngestMultimodalSwitch:
