@@ -42,5 +42,5 @@ pdfplumber>=0.11.0
 # PDF 组版（备选）：L00 毒文档生成的备选引擎（reportlab；fpdf2 亦可，二选一）
 reportlab>=4.0.0
 # 本地 OCR：L03 扫描件三路线（RapidOCR，onnx 轻量、CPU、pip 友好；首次运行会下 onnx 模型）
-# rapidocr_onnxruntime>=1.3.0   # 取消注释安装；L03 落地时需要
+rapidocr_onnxruntime>=1.3.0   # L03 落地：置信度路由的本地 OCR 引擎
 

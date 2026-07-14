@@ -19,6 +19,8 @@ from typing import Literal
 
 import fitz  # PyMuPDF
 
+from .config import settings
+
 # 元素类型：文本 / 表格 / 图片。后面每课按这个 type 分类路由。
 ElementType = Literal["text", "table", "image"]
 
@@ -208,8 +210,6 @@ def _extract_table_on_page(pdf_path: Path, page_idx: int) -> str:
         return ""
 
     # 按配置选表示：markdown（默认，便宜）或 html（保合并结构，贵）
-    from .config import settings
-
     if settings.table_format == "html":
         return table_to_html(rows)
     return table_to_markdown(rows)
@@ -242,12 +242,20 @@ def parse_pdf(pdf_path: str | Path) -> list[Element]:
         # ── 分类路由（L00 五层全景图的「解析层」核心逻辑）──
         if char_count == 0 and has_images:
             # 扫描页：文字渲染成图片，文本层为空 → image 元素
-            # content 暂为空字符串，L03 的 OCR 会填上识别文本
+            # L03：ocr_engine 开启时，用 OCR 把识别文本填进 content
+            ocr_content = ""
+            if settings.ocr_engine != "off":
+                # 延迟导入 ocr 模块（off 时不加载 RapidOCR，保持依赖干净）
+                from .ocr import ocr_page
+
+                result = ocr_page(path, page_idx)
+                if result:
+                    ocr_content = result.text
             img_bbox = _full_page_bbox(page)
             elements.append(
                 Element(
                     type="image",
-                    content="",
+                    content=ocr_content,
                     page=page_num,
                     bbox=img_bbox,
                     source=source,
