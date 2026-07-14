@@ -34,5 +34,7 @@ frontier-lessons/*/demo_*/
 gui-agent-lessons/*/*_raw.png
 # 多模态文档智能：毒文档生成的中间图表（company_briefing.pdf 成品已跟踪，中间 png 忽略）
 data/multimodal_docs/_chart_*.png
+# 多模态：VLM 图片描述缓存（按内容哈希，每台机器自己生成）
+portfolio-projects/knowledge-base-qa/vision_cache/
 *.db
 *.db-journal

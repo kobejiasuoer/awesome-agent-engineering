@@ -251,6 +251,14 @@ def parse_pdf(pdf_path: str | Path) -> list[Element]:
                 result = ocr_page(path, page_idx)
                 if result:
                     ocr_content = result.text
+            # L04：enable_image_caption 开启时，附加 VLM 结构化描述
+            # （扫描页通常 OCR 够用，描述是补充；图表页描述是主力）
+            if settings.enable_image_caption:
+                img_bytes = _render_page_region(page, _full_page_bbox(page))
+                from .vision import describe_image
+
+                desc = describe_image(img_bytes)
+                ocr_content = (ocr_content + "\n" + desc).strip() if ocr_content else desc
             img_bbox = _full_page_bbox(page)
             elements.append(
                 Element(
@@ -306,16 +314,24 @@ def parse_pdf(pdf_path: str | Path) -> list[Element]:
                     )
                 )
             # 图文混排页：文本 block 之外，把图片也单独列为 image 元素
+            # L04：enable_image_caption 开启时，图表/示意图生成 VLM 描述做索引
             if has_images and char_count > 0:
                 for img_info in page.get_image_info():
                     bbox = img_info.get("bbox")
                     if bbox:
+                        bbox_tuple = tuple(bbox)
+                        img_content = ""
+                        if settings.enable_image_caption:
+                            from .vision import describe_image
+
+                            img_bytes = _render_page_region(page, bbox_tuple)
+                            img_content = describe_image(img_bytes)
                         elements.append(
                             Element(
                                 type="image",
-                                content="",
+                                content=img_content,
                                 page=page_num,
-                                bbox=tuple(bbox),
+                                bbox=bbox_tuple,
                                 source=source,
                             )
                         )
@@ -328,6 +344,17 @@ def _full_page_bbox(page: fitz.Page) -> tuple[float, float, float, float]:
     """整页的 bbox（扫描页/表格页用整页区域作 bbox）。"""
     r = page.rect
     return (r.x0, r.y0, r.x1, r.y1)
+
+
+def _render_page_region(page: fitz.Page, bbox: tuple[float, float, float, float], dpi: int = 150) -> bytes:
+    """把页面的指定区域渲染成 PNG bytes（L04 VLM 描述的输入）。
+
+    用 clip=bbox 只截区域，而非整页——图表/示意图只截它自己的范围。
+    dpi 150 够 VLM 识别（最长边 ≤1280 降采样在调用方处理，这里给够清晰度）。
+    """
+    clip = fitz.Rect(*bbox)
+    pix = page.get_pixmap(dpi=dpi, clip=clip)
+    return pix.tobytes("png")
 
 
 def summarize(elements: list[Element]) -> ParseReport:
