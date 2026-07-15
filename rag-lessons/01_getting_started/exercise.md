@@ -1,6 +1,6 @@
 # Lesson 01 练习
 
-> 改 `code.py` 里对应的代码，运行 `python lessons/01_getting_started/code.py` 观察变化。
+> 改 `code.py` 里对应的代码，在仓库根目录运行 `python rag-lessons/01_getting_started/code.py` 观察变化。
 > 没有标准答案，重点是建立"改动→观察→理解"的直觉。
 
 ---

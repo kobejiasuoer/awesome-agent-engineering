@@ -1,0 +1,5 @@
+# Lesson 01 only. Install requirements.txt later for the complete course stack.
+zhipuai>=2.1.0
+chromadb>=0.5.0
+python-dotenv>=1.0.0
+sniffio>=1.3.0

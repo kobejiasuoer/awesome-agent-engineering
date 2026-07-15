@@ -1,46 +1,99 @@
-# LLM 应用实战课程 📚
+# Awesome Agent Engineering
 
-> **中文** | [English](README.en.md)
+> 从手写 RAG 与 ReAct，到可评估、可观测、可部署的 Agent 系统。
 
-这是一套**从零开始、系统掌握大模型应用开发**的实战课程，覆盖 **RAG、Agent、框架工程化、多智能体编排、LLMOps 生产运维、多模态文档智能、智能体前沿、GUI Agent** 八大方向。
-面向**会 Python 但刚接触大模型**的开发者，用可运行的代码 + 原理讲解，一步步从原理手写到框架落地，再到多 Agent 协作架构，再到多模态文档智能与 Agent 前沿能力，最后深入「让 Agent 上网操作页面」的最后一公里。
+**中文** | [English](README.en.md)
 
-> 技术栈：智谱 GLM-4 + embedding-3 · Chroma 本地向量库 · LangChain + LangGraph · CrewAI · AutoGen · Python
+[![Tests](https://github.com/kobejiasuoer/awesome-agent-engineering/actions/workflows/tests.yml/badge.svg)](https://github.com/kobejiasuoer/awesome-agent-engineering/actions/workflows/tests.yml)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Lessons](https://img.shields.io/badge/lessons-85-1f883d)](#课程路线)
+[![Tests](https://img.shields.io/badge/tests-266-0969da)](#可验证性)
+[![License](https://img.shields.io/badge/license-MIT-f1e05a)](LICENSE)
 
----
+这是一套面向 Python 开发者的 **LLM 应用工程实战课程**。85 节课程沿同一条主线递进：先手写核心机制，再用 LangChain / LangGraph 工程化，最后落到两个带测试、评估、API 与 Docker 的完整项目。
 
-## 🗺️ 八门课程总览
+这里不只展示“怎么调 API”，还会回答三个更难的问题：**为什么这样设计、不同方案如何取舍、加入一个机制后怎样证明它真的有效。**
 
-本工作区包含**八门递进课程**，建议按顺序学：
+[5 分钟开始](#5-分钟开始) · [查看课程路线](#课程路线) · [查看作品项目](#作品项目) · [参与贡献](CONTRIBUTING.md)
 
-| 课程 | 内容 | 状态 |
-|------|------|------|
-| 📘 [RAG 手写课程](rag-lessons/) | 从零系统理解 RAG 原理（embedding→检索→切块→prompt→混合检索→改写→评估→工程化）| ✅ 9/9 完成 |
-| 🤖 [Agent 手写课程](agent-lessons/) | 从零系统理解 AI Agent 原理（Function Calling→ReAct→工具设计→记忆→规划→Agentic RAG→多智能体→毕业项目）| ✅ 9/9 完成 |
-| 🔧 [框架进阶课程](framework-lessons/) | LangChain + LangGraph 工程化（把手写原理翻译成框架，每课做"手写版 vs 框架版"对比）| ✅ 9/9 完成 |
-| 🔀 [工作流与多智能体编排](workflow-lessons/) | 多 Agent 协作架构（supervisor/swarm/子图/并行/共享态/多模型，三框架横向对比）| ✅ 9/9 完成 |
-| 🛡️ [LLMOps 生产运维](ops-lessons/) | 上线之后：可观测性（日志/追踪/线上评估）→ 安全（鉴权限流/注入攻防/守护栏）→ MCP 集成 → 性能成本（缓存/压测/选型）。把作品集项目从「能跑」推进到「运维就绪」| ✅ 13/13 完成 |
-| 📄 [多模态文档智能](doc-intelligence-lessons/) | 让知识库能吃扫描件/表格/图表：版面解析→表格结构化→OCR→图表理解→多模态检索→引用溯源→语音入口→评估收益表。把 kb-qa 从「只吃纯文本」升级为「多模态文档智能 v3」，引用可回溯到页码+区域 | ✅ 10/10 完成 |
-| 🧠 [智能体前沿](frontier-lessons/) | Agent 记忆/反思/Code Agent/轨迹评估/上下文工程/长任务——教未收敛的前沿，把 research-assistant 养成跨会话进化的深度智能体（Deep Research Agent v2）。**每课有流派对比 + 设计实验验证收益** | ✅ 13/13 完成 |
-| 🖥️ [GUI Agent / Computer Use](gui-agent-lessons/) | 让 Agent 从「会搜索」到「会上网」：Playwright 控制层→观察空间→行动 DSL→文本/视觉/混合三路线→可靠性→网页注入攻防→本地 mini-benchmark→落地 research-assistant 长出「手」→证据链→毕业整合。未收敛前沿，三大流派（文本/视觉/专用模型）取舍 + SoM 消融实验 | ✅ 13/13 完成 |
+## 项目一览
 
-> **学习路径**：先学 RAG（懂检索原理）→ 再学 Agent（懂自主决策）→ 再学框架进阶（工程化落地）→ 再学多智能体编排（架构师进阶）→ 再学 LLMOps（运维就绪）→ 再学多模态文档智能（让知识库吃扫描件/表格/图表）→ 再学智能体前沿（让 Agent 自主进化）→ 最后学 GUI Agent（让 Agent 会上网操作页面）。
+| 课程 | 作品项目 | 自动化测试 | 语言 |
+|---:|---:|---:|---:|
+| 8 门 / 85 节 | 2 个 | 266 项 | 中文 + English |
 
----
+- **从原理到框架**：RAG、Function Calling、ReAct 都先手写，再对照框架实现。
+- **从结果到证据**：RAGAS、消融实验、Agent 轨迹评估与 mini-benchmark 贯穿课程。
+- **从 Demo 到工程**：鉴权、限流、日志、追踪、缓存、压测、MCP、Docker 都落到作品项目。
+- **覆盖新方向**：多模态文档理解、Agent Memory、CodeAct、长任务与 GUI Agent。
 
-## 🚀 生产级作品集项目
+## 先看结果
 
-学完课程后，把所学能力缝合成**真正可上生产的 AI 应用**：
+| 企业知识库问答 | AI 研究分析助手 |
+|---|---|
+| [![企业知识库问答界面](docs/assets/readme/knowledge-base-qa.png)](portfolio-projects/knowledge-base-qa/) | [![AI 研究分析助手界面](docs/assets/readme/research-assistant.png)](portfolio-projects/research-assistant/) |
+| 混合检索、rerank、引用溯源、多模态解析 | 多 Agent 并行研究、审稿回路、记忆、浏览器取证 |
 
-| 项目 | 内容 | 状态 |
-|------|------|------|
-| 📚 [企业知识库问答系统](portfolio-projects/knowledge-base-qa/) | 生产级 RAG：混合检索 + 智谱 rerank + 防幻觉引用 + ragas 评估。**经 ops-lessons 升级为运维就绪 v2**：结构化日志/Langfuse 追踪/线上评估闭环 + key 鉴权限流 + 注入攻防守护栏 + MCP Server（可被 Agent 调用）+ 语义缓存/压测/成本选型。**经 doc-intelligence-lessons 升级为多模态文档智能 v3**：版面感知解析（扫描件/表格/图表分类路由）+ 置信度 OCR + VLM 两段式图表理解 + 描述索引多模态检索 + 页码+区域引用溯源 + 语音入口。| ✅ 多模态 v3 |
-| 🔬 [AI 研究分析助手](portfolio-projects/research-assistant/) | 多智能体并行研究系统：真实联网搜索 + 审稿回路 + 多模型降本 + SSE 流式 + SqliteSaver 持久化 + FastAPI 服务化 + Docker 部署。**经 ops-lessons L09 接入 MCP**（内部+联网双源）。**经 frontier-lessons 升级为 Deep Research Agent v2**：Agent 记忆（情景/语义分层）+ 反思式双通道 reviewer（冲突修正）+ CodeAct 代码解释器（可复算）+ Skills 渐进式加载 + 任务账本（跨会话增量简报）+ 轨迹评估（机制收益量化）。**经 gui-agent-lessons 长出「手」**：browser_tool 浏览器取证（详情页/翻页/证据链 URL+访问时间）+ 安全层（域名 allowlist/敏感动作确认/注入扫描，默认开）+ 可靠性（循环检测）+ 本地 mini-benchmark。| ✅ 会上网 |
+> 截图使用本地界面与演示数据生成；项目默认不会调用外部 API，只有显式运行时才会产生模型费用。
 
-> 这是课程能力的**生产级落地**——不是 demo，是能直接部署、能扛真实流量、能讲完整运维故事的 AI 应用服务。
-> 两个项目通过 MCP 标准协议打通（见 [ops-lessons L09](ops-lessons/09_mcp_client/)）。
+## 5 分钟开始
 
----
+先运行零依赖、零 API Key 的离线导览，观察一次完整的“查询向量化 → 检索 → 组装上下文 → 回答”流程：
+
+```bash
+python quickstart.py
+python quickstart.py "入职满 5 年有多少天年假？"
+```
+
+离线导览使用字符 n-gram 检索和确定性回答器，目的是让你先看清数据流，不冒充真实 LLM。随后运行第一节真实 RAG：
+
+```bash
+python -m venv .venv
+
+# Windows
+.\.venv\Scripts\python.exe -m pip install -r requirements-quickstart.txt
+
+# macOS / Linux
+# .venv/bin/python -m pip install -r requirements-quickstart.txt
+
+copy .env.example .env   # macOS / Linux: cp .env.example .env
+# 在 .env 中填写 ZHIPUAI_API_KEY
+.\.venv\Scripts\python.exe rag-lessons\01_getting_started\code.py
+```
+
+完整课程依赖按需安装：`python -m pip install -r requirements.txt`。浏览器、OCR、语音组件较重，不需要在第一课一次装完。
+
+## 课程路线
+
+```mermaid
+flowchart LR
+    A["RAG 原理"] --> B["Agent 原理"] --> C["框架工程"] --> D["多 Agent 编排"]
+    D --> E["LLMOps"] --> F["多模态文档"] --> G["Agent 前沿"] --> H["GUI Agent"]
+```
+
+| 阶段 | 课程 | 核心产出 | 进度 |
+|---|---|---|---:|
+| 基础 | [RAG 手写](rag-lessons/) | embedding、检索、切块、评估 | 9/9 |
+| 基础 | [Agent 手写](agent-lessons/) | Function Calling、ReAct、规划、记忆 | 9/9 |
+| 工程 | [框架进阶](framework-lessons/) | LangChain、LangGraph、状态与 HITL | 9/9 |
+| 架构 | [多智能体编排](workflow-lessons/) | supervisor、swarm、子图、并行 | 9/9 |
+| 生产 | [LLMOps](ops-lessons/) | 可观测性、安全、MCP、性能与成本 | 13/13 |
+| 场景 | [多模态文档智能](doc-intelligence-lessons/) | PDF、OCR、表格、图表、引用溯源 | 10/10 |
+| 前沿 | [智能体前沿](frontier-lessons/) | 记忆、反思、CodeAct、轨迹评估 | 13/13 |
+| 前沿 | [GUI Agent](gui-agent-lessons/) | 浏览器控制、视觉路线、可靠性与安全 | 13/13 |
+
+## 作品项目
+
+| 项目 | 可核验能力 | 测试 |
+|---|---|---:|
+| [企业知识库问答](portfolio-projects/knowledge-base-qa/) | 混合检索 + rerank、引用、RAGAS、鉴权限流、MCP、多模态文档解析 | 143 |
+| [AI 研究分析助手](portfolio-projects/research-assistant/) | LangGraph 多 Agent、SSE、审稿回路、记忆、CodeAct、轨迹评估、浏览器取证 | 123 |
+
+两个项目通过 MCP 打通，均提供 FastAPI、Docker、测试与关闭外部能力后的降级路径。它们是课程机制的工程样例；实际生产容量与可靠性仍应在你的部署环境中重新压测和验证。
+
+<details>
+<summary><strong>展开 85 节完整课程目录</strong></summary>
+
 
 ## 📚 课程一：RAG 手写课程（共 9 节课）
 
@@ -194,7 +247,7 @@
 
 ## 🖥️ 课程八：GUI Agent / Computer Use 课程（共 13 节课）
 
-前七门课把 research-assistant 养成了**会思考**的深度智能体，但它只有脑子没有手——「研究世界」的唯一渠道是搜索摘要。本课教 **2025–2026 仍未收敛的前沿**：让 Agent 直接操作浏览器完成任务（打开页面、点击、翻页、提取、下载），给 research-assistant 长出一双**稳、安全、可评估**的手。课程风格延续第七门课：README 不讲「标准做法」，讲「三大流派（文本/视觉/专用模型）取舍是什么、选 X 因为……」；代码是「手写核心机制 + 设计实验验证有没有用」。所有落地改动作用于 research-assistant，`enable_browser` 默认关，123 测试始终绿。
+前七门课把 research-assistant 养成了**会思考**的深度智能体，但它只有脑子没有手——「研究世界」的唯一渠道是搜索摘要。本课教 **2025–2026 仍未收敛的前沿**：让 Agent 直接操作浏览器完成任务（打开页面、点击、翻页、提取、下载），给 research-assistant 长出一双**稳、安全、可评估**的手。课程风格延续第七门课：README 不讲「标准做法」，讲「三大流派（文本/视觉/专用模型）取舍是什么、选 X 因为……」；代码是「手写核心机制 + 设计实验验证有没有用」。所有落地改动作用于 research-assistant，`enable_browser` 默认关，123 项测试始终绿。
 
 | # | 课程 | 你会学到 |
 |---|------|---------|
@@ -214,29 +267,16 @@
 
 > 已完成全部 **13 节课** 🎉。**两条贯穿主线**：①评估主线（L00 裸基线→L08 mini-benchmark→L11 收益表量化全部机制收益）；②观察-行动接口主线（L02 观察空间→L03 行动 DSL→L04 循环合拢，是上下文工程母题在 GUI 场景的延伸）。每课 README 有「流派对比」小节 + 至少一道「设计实验验证」练习。落地后 research-assistant 新增 19 个 browser 测试（全量 123 全绿），`enable_browser` 默认关、降级路径完好。
 
----
+</details>
 
-## 🚀 快速开始（5 步）
+## 可验证性
 
 ```bash
-# 1. 确保有 Python 3.9+
-python --version
-
-# 2. 安装依赖
-pip install -r requirements.txt
-
-# 3. 配置 API Key
-cp .env.example .env
-# 编辑 .env，把 ZHIPUAI_API_KEY 换成你的真实 Key
-# Key 获取：https://bigmodel.cn/ → 控制台 → API Keys
-
-# 4. 跑第一课
-python rag-lessons/01_getting_started/code.py
-
-# 5. 看着输出，去 rag-lessons/01_getting_started/README.md 学原理
+python -m pytest portfolio-projects/knowledge-base-qa/tests -q
+python -m pytest portfolio-projects/research-assistant/tests -q
 ```
 
-跑通后，打开 [Lesson 01 的练习](rag-lessons/01_getting_started/exercise.md) 动手改改代码。
+测试默认 mock 外部模型调用，适合在 CI 中稳定复现。真实模型效果、RAGAS 结果和压测方法分别记录在项目的 `eval/` 与 `loadtest/` 目录；报告中的环境相关数字不应直接当作生产承诺。
 
 ---
 
@@ -272,9 +312,13 @@ RAG-test/
 
 - **一定要跑代码**，不要只看。RAG 的很多直觉来自亲手改参数、看输出变化。
 - 按顺序学，每课建立在前一课之上。
-- 卡住了随时问我（你的 AI 助手），把报错贴给我。
+- 每节课固定包含原理 README、可运行的 `code.py` 和实验练习；先跑基线，再改参数做对照。
+- 遇到问题请提交 [Bug 报告](https://github.com/kobejiasuoer/awesome-agent-engineering/issues/new?template=bug-report.yml)；课程建议可提交 [课程反馈](https://github.com/kobejiasuoer/awesome-agent-engineering/issues/new?template=lesson-feedback.yml)。
 
 ---
 
-感谢：
- Linux.do佬友支持: https://linux.do/
+## 参与贡献
+
+课程勘误、跨平台兼容、新模型适配和可复现实验都欢迎贡献。开始前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)；发布变化记录在 [CHANGELOG.md](CHANGELOG.md)；安全问题请按 [SECURITY.md](SECURITY.md) 私下报告。
+
+MIT License · 感谢 [Linux.do](https://linux.do/) 社区的支持。

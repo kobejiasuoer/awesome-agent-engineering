@@ -1,0 +1,50 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quickstart:
+    name: Offline quickstart
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python quickstart.py
+
+  project-tests:
+    name: ${{ matrix.project.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - name: Knowledge Base QA
+            path: portfolio-projects/knowledge-base-qa
+            coverage: kb_qa
+            extras: PyMuPDF pdfplumber pillow httpx
+          - name: Research Assistant
+            path: portfolio-projects/research-assistant
+            coverage: research_assistant
+            extras: playwright httpx
+    defaults:
+      run:
+        working-directory: ${{ matrix.project.path }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: ${{ matrix.project.path }}/requirements.txt
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt pytest-cov ${{ matrix.project.extras }}
+      - name: Run tests with coverage
+        run: python -m pytest tests --cov=${{ matrix.project.coverage }} --cov-report=term-missing

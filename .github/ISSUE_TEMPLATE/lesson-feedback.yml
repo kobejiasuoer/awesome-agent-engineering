@@ -1,0 +1,36 @@
+name: Lesson feedback
+description: 提交课程勘误、实验结果或改进建议
+title: "[Lesson] "
+labels: [documentation]
+body:
+  - type: input
+    id: lesson
+    attributes:
+      label: 课程路径
+      placeholder: frontier-lessons/08_trajectory_eval
+    validations:
+      required: true
+  - type: dropdown
+    id: type
+    attributes:
+      label: 反馈类型
+      options:
+        - 内容勘误
+        - 代码无法运行
+        - 实验结果不同
+        - 缺少前置知识
+        - 改进建议
+    validations:
+      required: true
+  - type: textarea
+    id: feedback
+    attributes:
+      label: 详细说明
+      description: 如果涉及实验，请附上参数、环境和实际结果。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议修改
+      description: 可选。请说明怎样修改会更清楚或更容易复现。

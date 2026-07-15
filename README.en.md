@@ -1,47 +1,99 @@
-# LLM App Engineering Course 📚
+# Awesome Agent Engineering
 
-> [中文](README.md) | **English**
+> From hand-written RAG and ReAct loops to Agent systems that can be evaluated, observed, and deployed.
 
-A hands-on, **learn-from-zero-to-mastery** course for building large language model applications, covering eight tracks: **RAG · Agents · Framework Engineering · Multi-Agent Orchestration · LLMOps · Multimodal Document Intelligence · Agent Frontiers · GUI Agents / Computer Use**.
+[中文](README.md) | **English**
 
-Designed for **developers who know Python but are new to LLMs**, it pairs runnable code with principle walkthroughs—taking you step by step from hand-written fundamentals to framework implementations, then to multi-agent architectures, then through multimodal document intelligence and agent frontiers, and finally into the last mile of "letting agents operate the web."
+[![Tests](https://github.com/kobejiasuoer/awesome-agent-engineering/actions/workflows/tests.yml/badge.svg)](https://github.com/kobejiasuoer/awesome-agent-engineering/actions/workflows/tests.yml)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Lessons](https://img.shields.io/badge/lessons-85-1f883d)](#learning-path)
+[![Tests](https://img.shields.io/badge/tests-266-0969da)](#verification)
+[![License](https://img.shields.io/badge/license-MIT-f1e05a)](LICENSE)
 
-> **Stack:** Zhipu GLM-4 + embedding-3 · Chroma (local vector DB) · LangChain + LangGraph · CrewAI · AutoGen · Python
+A hands-on **LLM application engineering course** for Python developers. Its 85 lessons follow one continuous path: hand-write the core mechanisms, translate them into LangChain and LangGraph, then integrate them into two tested projects with evaluation, APIs, and Docker support.
 
----
+This repository goes beyond API recipes. It asks: **Why choose this design? What are the trade-offs? How can an experiment prove that a new mechanism actually helps?**
 
-## 🗺️ The Eight Courses at a Glance
+[Start in 5 minutes](#start-in-5-minutes) · [Learning path](#learning-path) · [Portfolio projects](#portfolio-projects) · [Contributing](CONTRIBUTING.md)
 
-This workspace holds **eight progressive courses**. Recommended order:
+## At a glance
 
-| Course | What you learn | Status |
-|--------|----------------|--------|
-| 📘 [Hand-written RAG](rag-lessons/) | Understand RAG from scratch (embedding → retrieval → chunking → prompting → hybrid retrieval → rewriting → evaluation → engineering) | ✅ 9/9 done |
-| 🤖 [Hand-written Agents](agent-lessons/) | Understand AI Agents from scratch (Function Calling → ReAct → tool design → memory → planning → Agentic RAG → multi-agent → capstone) | ✅ 9/9 done |
-| 🔧 [Framework Engineering](framework-lessons/) | LangChain + LangGraph engineering (translate hand-written principles into frameworks; each lesson compares "hand-written vs framework") | ✅ 9/9 done |
-| 🔀 [Workflow & Multi-Agent Orchestration](workflow-lessons/) | Multi-agent collaboration architectures (supervisor / swarm / subgraphs / parallel / shared state / multi-model; side-by-side comparison across three frameworks) | ✅ 9/9 done |
-| 🛡️ [LLMOps in Production](ops-lessons/) | After launch: observability (logging / tracing / online eval) → security (auth & rate limiting / injection offense & defense / guardrails) → MCP integration → performance & cost (caching / load testing / model selection). Take the portfolio projects from "works" to "ops-ready" | ✅ 13/13 done |
-| 📄 [Multimodal Document Intelligence](doc-intelligence-lessons/) | Make the knowledge base eat scans / tables / charts: layout parsing → table structuring → OCR → chart understanding → multimodal retrieval → citation provenance → voice entry → evaluation gains table. Upgrade kb-qa from "text-only" to "multimodal document intelligence v3" with citations traceable to page + region | ✅ 10/10 done |
-| 🧠 [Agent Frontiers](frontier-lessons/) | Agent memory / reflection / Code Agents / trajectory eval / context engineering / long-horizon tasks—teaching not-yet-converged frontiers, growing research-assistant into a cross-session Deep Research Agent v2. **Every lesson has a schools-of-thought comparison + design experiments that validate the gains** | ✅ 13/13 done |
-| 🖥️ [GUI Agent / Computer Use](gui-agent-lessons/) | From "can search" to "can browse": Playwright control layer → observation space → action DSL → text/vision/hybrid routes → reliability → web-injection offense & defense → a local, reproducible mini-benchmark → landing on research-assistant so it grows "hands" → evidence chains → capstone. A not-yet-converged frontier: three schools of thought (text / vision / dedicated models) with trade-offs + a SoM ablation experiment | ✅ 13/13 done |
+| Courses | Portfolio apps | Automated tests | Languages |
+|---:|---:|---:|---:|
+| 8 / 85 lessons | 2 | 266 | Chinese + English |
 
-> **Learning path:** RAG first (understand retrieval) → Agents (autonomous decision-making) → Framework Engineering (productionize) → Multi-Agent Orchestration (architect track) → LLMOps (ops-ready) → Multimodal Document Intelligence (let the KB eat scans / tables / charts) → Agent Frontiers (let agents evolve) → GUI Agents (let agents operate the web).
+- **Principles before frameworks:** hand-written RAG, Function Calling, and ReAct are paired with framework implementations.
+- **Evidence before claims:** RAGAS, ablations, trajectory evaluation, and local mini-benchmarks run through the curriculum.
+- **Engineering beyond demos:** auth, rate limiting, tracing, caching, load testing, MCP, and Docker land in the portfolio apps.
+- **Current topics:** multimodal documents, Agent memory, CodeAct, long-running tasks, and GUI Agents.
 
----
+## See the results
 
-## 🚀 Production-Grade Portfolio Projects
+| Enterprise Knowledge Base QA | AI Research Assistant |
+|---|---|
+| [![Knowledge Base QA UI](docs/assets/readme/knowledge-base-qa.png)](portfolio-projects/knowledge-base-qa/) | [![AI Research Assistant UI](docs/assets/readme/research-assistant.png)](portfolio-projects/research-assistant/) |
+| Hybrid retrieval, reranking, citations, multimodal parsing | Parallel research, review loops, memory, browser evidence |
 
-After finishing the courses, stitch the skills together into **genuinely production-ready AI apps**:
+> Screenshots were rendered from the local interfaces with illustrative data. External APIs are called only when you explicitly run an API-backed example.
 
-| Project | What it is | Status |
-|---------|-----------|--------|
-| 📚 [Enterprise Knowledge Base QA](portfolio-projects/knowledge-base-qa/) | Production RAG: hybrid retrieval + Zhipu rerank + anti-hallucination citations + ragas evaluation. **Upgraded to ops-ready v2 in ops-lessons:** structured logging / Langfuse tracing / online eval loop + API-key auth & rate limiting + injection-defense guardrails + an MCP Server (callable by Agents) + semantic caching / load testing / cost-aware model selection. **Upgraded to multimodal document intelligence v3 in doc-intelligence-lessons:** layout-aware parsing (scan / table / chart classification routing) + confidence-routed OCR + VLM two-stage chart understanding + description-index multimodal retrieval + page+region citation provenance + voice entry. | ✅ Multimodal v3 |
-| 🔬 [AI Research Assistant](portfolio-projects/research-assistant/) | A multi-agent parallel research system: real web search + review loop + multi-model cost optimization + SSE streaming + SqliteSaver persistence + FastAPI service + Docker deploy. **Gains MCP access in ops-lessons L09** (internal + web dual sources). **Upgraded to Deep Research Agent v2 in frontier-lessons:** agent memory (episodic / semantic layered) + reflective dual-channel reviewer (conflict correction) + CodeAct code interpreter (reproducible numbers) + progressive Skills loading + task ledger (cross-session incremental briefings) + trajectory evaluation (mechanism gains quantified). **Grows "hands" in gui-agent-lessons:** browser_tool evidence gathering (detail pages / pagination / evidence chains with URL + access time) + a security layer (domain allowlist / sensitive-action confirmation / injection scanning, on by default) + reliability (loop detection) + a local mini-benchmark. | ✅ Browses the web |
+## Start in 5 minutes
 
-> These are **production-grade landings** of the course skills—not demos, but AI application services you can deploy directly, handle real traffic, and tell a complete ops story with.
-> The two projects are wired together via the MCP standard protocol (see [ops-lessons L09](ops-lessons/09_mcp_client/)).
+Run the dependency-free, API-key-free tour first:
 
----
+```bash
+python quickstart.py
+python quickstart.py "How many annual-leave days after 5 years?"
+```
+
+The tour uses local character n-gram retrieval and a deterministic answerer. It exposes the RAG data flow without pretending to be a real LLM. Then run Lesson 01 with Zhipu AI:
+
+```bash
+python -m venv .venv
+
+# Windows
+.\.venv\Scripts\python.exe -m pip install -r requirements-quickstart.txt
+
+# macOS / Linux
+# .venv/bin/python -m pip install -r requirements-quickstart.txt
+
+copy .env.example .env   # macOS / Linux: cp .env.example .env
+# Set ZHIPUAI_API_KEY in .env
+.\.venv\Scripts\python.exe rag-lessons\01_getting_started\code.py
+```
+
+Install `requirements.txt` only when you need the complete course stack; browser, OCR, and voice dependencies are intentionally not required for Lesson 01.
+
+## Learning path
+
+```mermaid
+flowchart LR
+    A["RAG fundamentals"] --> B["Agent fundamentals"] --> C["Frameworks"] --> D["Multi-Agent workflows"]
+    D --> E["LLMOps"] --> F["Multimodal docs"] --> G["Agent frontiers"] --> H["GUI Agents"]
+```
+
+| Stage | Course | Main outcome | Progress |
+|---|---|---|---:|
+| Foundations | [Hand-written RAG](rag-lessons/) | Embeddings, retrieval, chunking, evaluation | 9/9 |
+| Foundations | [Hand-written Agents](agent-lessons/) | Function Calling, ReAct, planning, memory | 9/9 |
+| Engineering | [Framework Engineering](framework-lessons/) | LangChain, LangGraph, state, HITL | 9/9 |
+| Architecture | [Multi-Agent Orchestration](workflow-lessons/) | Supervisors, swarms, subgraphs, parallelism | 9/9 |
+| Production | [LLMOps](ops-lessons/) | Observability, security, MCP, performance and cost | 13/13 |
+| Applied | [Multimodal Documents](doc-intelligence-lessons/) | PDF, OCR, tables, charts, citation provenance | 10/10 |
+| Frontier | [Agent Frontiers](frontier-lessons/) | Memory, reflection, CodeAct, trajectory evaluation | 13/13 |
+| Frontier | [GUI Agents](gui-agent-lessons/) | Browser control, vision, reliability, security | 13/13 |
+
+## Portfolio projects
+
+| Project | Verifiable capabilities | Tests |
+|---|---|---:|
+| [Enterprise Knowledge Base QA](portfolio-projects/knowledge-base-qa/) | Hybrid retrieval + reranking, citations, RAGAS, auth, rate limits, MCP, multimodal parsing | 143 |
+| [AI Research Assistant](portfolio-projects/research-assistant/) | LangGraph multi-Agent flow, SSE, reviews, memory, CodeAct, trajectory evaluation, browser evidence | 123 |
+
+Both projects expose FastAPI services, Docker setups, tests, and fallback paths when optional external capabilities are disabled. They are engineering references, not universal production-capacity guarantees; load-test and validate them in your own deployment environment.
+
+<details>
+<summary><strong>Expand the complete 85-lesson catalog</strong></summary>
+
 
 ## 📚 Course 1: Hand-written RAG (9 lessons)
 
@@ -214,29 +266,16 @@ The first seven courses grew research-assistant into a deep agent that **thinks*
 
 > All **13 lessons** done 🎉. **Two through-lines:** ① an evaluation main line (L00 bare baseline → L08 mini-benchmark → L11 gains table quantifying every mechanism); ② an observation–action interface main line (L02 observation space → L03 action DSL → L04 loop closure—the context-engineering theme extended to GUI). Each lesson's README has a "schools of thought" section + at least one "design experiment to validate" exercise. Landing adds 19 browser tests to research-assistant (123 total, all green); `enable_browser` defaults to off with intact fallback paths.
 
----
+</details>
 
-## 🚀 Quick Start (5 steps)
+## Verification
 
 ```bash
-# 1. Make sure you have Python 3.9+
-python --version
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Configure your API key
-cp .env.example .env
-# Edit .env and replace ZHIPUAI_API_KEY with your real key
-# Get a key: https://bigmodel.cn/ → Console → API Keys
-
-# 4. Run the first lesson
-python rag-lessons/01_getting_started/code.py
-
-# 5. Watch the output, then read rag-lessons/01_getting_started/README.md for the principles
+python -m pytest portfolio-projects/knowledge-base-qa/tests -q
+python -m pytest portfolio-projects/research-assistant/tests -q
 ```
 
-Once it runs, open the [Lesson 01 exercise](rag-lessons/01_getting_started/exercise.md) and tweak the code yourself.
+External model calls are mocked by default so CI remains reproducible. Real-model evaluation and load-test methods live in each project's `eval/` and `loadtest/` directories; environment-dependent numbers should not be treated as production promises.
 
 ---
 
@@ -273,9 +312,13 @@ Portfolio projects use a **modular engineering layout** (`src/` + `api/` + `test
 
 - **Run the code.** Don't just read. A lot of RAG intuition comes from changing parameters yourself and watching the output change.
 - Learn in order—each lesson builds on the previous one.
-- When you're stuck, ask your AI assistant—paste the error and we'll sort it out.
+- Each lesson contains a principles README, runnable `code.py`, and experiments. Run the baseline before changing parameters.
+- Use the GitHub issue templates for bugs and lesson feedback.
 
 ---
 
-Thanks to:
- Linux.do community: https://linux.do/
+## Contributing
+
+Corrections, cross-platform fixes, model adapters, and reproducible experiments are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request, see [CHANGELOG.md](CHANGELOG.md) for release changes, and report security issues privately according to [SECURITY.md](SECURITY.md).
+
+MIT License · Thanks to the [Linux.do](https://linux.do/) community for its support.

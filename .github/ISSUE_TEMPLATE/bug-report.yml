@@ -1,0 +1,53 @@
+name: Bug report
+description: 报告可复现的代码、安装或文档问题
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: 所属模块
+      options:
+        - RAG lessons
+        - Agent lessons
+        - Framework lessons
+        - Workflow lessons
+        - LLMOps lessons
+        - Document intelligence lessons
+        - Agent frontier lessons
+        - GUI Agent lessons
+        - Knowledge Base QA
+        - Research Assistant
+        - Documentation or installation
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 说明实际行为和预期行为。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 最小复现步骤
+      placeholder: |
+        1. Run ...
+        2. Change ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 环境
+      placeholder: Windows 11, Python 3.11, package version ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志或截图
+      description: 请先删除 API Key、Cookie 和其他敏感数据。
+      render: shell
