@@ -160,6 +160,20 @@ class Settings(BaseSettings):
     # 一次运行的 token 硬上限（mock 下为估算值；结构结论同真实）
     max_budget_tokens: int = 50000
 
+    # ── 超时、熔断与诚实降级（AgentOps L03）──────────────────────
+    # 现状 web_search 超时返回「搜索超时」字符串混进材料被当事实（不诚实降级）。
+    # 本开关启用后：工具返回结构化结果（ok/degraded/failed + 原因），
+    # degraded 材料在 prompt 里标注、报告里声明「N 个子题检索失败」。
+    # 配合手写熔断器（breaker.py）治持续故障：连续 N 次失败 → 快速失败不再等超时。
+    # 默认关：不破坏现有测试；开启后 web_search_structured 生效。
+    enable_circuit_breaker: bool = False
+    # 熔断阈值：连续失败几次打开（治持续故障，不是抖动）
+    breaker_fail_threshold: int = 3
+    # 熔断冷却（秒）：打开后多久半开试探
+    breaker_cooldown: float = 30.0
+    # 搜索重试次数（治抖动，0=不重试；熔断器治持续故障，重试治偶发抖动）
+    search_retry: int = 0
+
 
 @lru_cache
 def get_settings() -> Settings:

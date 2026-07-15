@@ -65,8 +65,22 @@ def fake_llm():
 
 @pytest.fixture(autouse=True)
 def reset_config_cache():
-    """每个测试前重置 settings 的 lru_cache，保证环境变量改动生效。"""
+    """每个测试前重置 settings 的 lru_cache，保证环境变量改动生效。
+
+    AgentOps L03：同时重置熔断器注册表（避免跨测试状态泄漏）。
+    """
     from research_assistant import config
     config.get_settings.cache_clear()
+    # AgentOps L03：每个测试前清空熔断器（_breakers 是模块全局，不隔离会泄漏）
+    try:
+        from research_assistant.breaker import reset_breakers
+        reset_breakers()
+    except Exception:
+        pass
     yield
     config.get_settings.cache_clear()
+    try:
+        from research_assistant.breaker import reset_breakers
+        reset_breakers()
+    except Exception:
+        pass

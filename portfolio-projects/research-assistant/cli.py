@@ -49,6 +49,8 @@ def _initial_state(topic: str) -> dict:
         # AgentOps L02：轨迹级成本预算
         "token_usage": 0,
         "cost_mode": "normal",
+        # AgentOps L03：诚实降级协议
+        "failed_subtopics": [],
     }
 
 

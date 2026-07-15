@@ -74,3 +74,68 @@ def _ddgs_search(query: str, max_results: int) -> str:
         href = r.get("href", "")
         formatted.append(f"[{i}] {title}\n    {body}\n    来源: {href}")
     return "\n".join(formatted)
+
+
+async def web_search_structured(query: str, max_results: int | None = None) -> dict:
+    """结构化搜索（AgentOps L03 诚实降级协议）。
+
+    与 web_search 的本质区别：返回结构化结果而非裸字符串。
+        {"status": "ok"|"degraded"|"failed", "content": str, "reason": str}
+
+    - ok：搜索成功，content 是格式化结果
+    - degraded：超时（不等了的失败）/ 熔断打开快速失败 —— content 可能为空
+    - failed：抛错（等了的失败）
+
+    关键：degraded/failed 的 content 绝不是「搜索超时」字符串混进材料被当事实——
+    下游（researcher）看 status 字段决定怎么用，而不是 parse 字符串。
+    熔断器（enable_circuit_breaker）打开时，连续失败会快速失败不再等超时。
+
+    默认走这个函数当 enable_circuit_breaker=True；否则现状用 web_search（字符串）。
+    """
+    from .breaker import get_breaker, call_with_breaker
+
+    max_results = max_results or settings.search_max_results
+
+    # 熔断器（按 web_search 实例隔离）
+    if settings.enable_circuit_breaker:
+        breaker = get_breaker(
+            "web_search",
+            fail_threshold=settings.breaker_fail_threshold,
+            cooldown=settings.breaker_cooldown,
+        )
+        # 包装一次带超时的搜索调用
+        async def _do_search():
+            return await asyncio.wait_for(
+                asyncio.to_thread(_ddgs_search, query, max_results),
+                timeout=settings.search_timeout,
+            )
+        # 重试（治抖动）+ 熔断（治持续故障）
+        retries = settings.search_retry
+        last_result = None
+        for attempt in range(retries + 1):
+            result = await call_with_breaker(breaker, _do_search)
+            last_result = result
+            if result["status"] == "ok":
+                return result
+            # 失败：熔断打开时 call_with_breaker 已返回 degraded（不重试）
+            if result["reason"].startswith("熔断器打开"):
+                return result
+            # 抖动重试（未到熔断阈值的偶发失败）
+            if attempt < retries:
+                await asyncio.sleep(0.1 * (attempt + 1))
+                continue
+        return last_result
+
+    # 未开熔断器：带超时的搜索，结构化包装（比 web_search 多一层诚实标注）
+    try:
+        content = await asyncio.wait_for(
+            asyncio.to_thread(_ddgs_search, query, max_results),
+            timeout=settings.search_timeout,
+        )
+        return {"status": "ok", "content": content, "reason": ""}
+    except asyncio.TimeoutError:
+        return {"status": "degraded", "content": "",
+                "reason": f"搜索超时（{settings.search_timeout}s）"}
+    except Exception as e:
+        return {"status": "failed", "content": "",
+                "reason": f"{type(e).__name__}: {e}"}

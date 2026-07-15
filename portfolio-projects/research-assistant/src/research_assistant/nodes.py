@@ -153,7 +153,20 @@ def make_researcher(fast_llm):
             and "失败" not in kb_raw and "未启用" not in kb_raw and "没有相关材料" not in kb_raw
 
         # 真实联网搜索（tools.py，带限流/超时/兜底）
-        web_raw = await web_search(subtopic)
+        # AgentOps L03：enable_circuit_breaker 时走结构化搜索（诚实降级协议）
+        failed_subtopic: str | None = None
+        if settings.enable_circuit_breaker:
+            from .tools import web_search_structured
+            sr = await web_search_structured(subtopic)
+            if sr["status"] == "ok":
+                web_raw = sr["content"]
+            else:
+                # 诚实降级：degraded/failed 不混进材料，标记失败子题上报
+                web_raw = ""
+                failed_subtopic = f"{subtopic}（{sr['reason']}）"
+                log.warning(f"researcher 检索降级：{subtopic} → {sr['status']}（{sr['reason']}）")
+        else:
+            web_raw = await web_search(subtopic)
 
         # ── 浏览器取证（GUI Agent L09）──────────────────────────
         # 启用时，从 web_search 拿到的来源链接里挑 allowlist 内的详情页，
@@ -185,6 +198,13 @@ def make_researcher(fast_llm):
         if browser_evidence:
             search_raw = f"{search_raw}\n\n--- 浏览器详情页取证 ---\n{browser_evidence}"
             source_tag = f"{source_tag} + 浏览器取证"
+
+        # AgentOps L03：检索失败的子题——上报失败，不让降级字符串混进材料
+        if failed_subtopic is not None:
+            return {
+                "findings": [],  # 不产出被污染的 finding
+                "failed_subtopics": [failed_subtopic],
+            }
 
         # 判断是否拿到有效素材
         has_source = "没有返回结果" not in search_raw and "失败" not in search_raw and "超时" not in search_raw
@@ -366,6 +386,15 @@ def make_writer(smart_llm):
             report = (
                 f"⚠️ **本次研究因步数预算/循环检测被截断，以下为基于已有材料的部分结果。**\n\n"
                 + report
+            )
+
+        # AgentOps L03：诚实降级声明——检索失败的子题在报告里如实标注
+        failed_subs = state.get("failed_subtopics", [])
+        if failed_subs:
+            decl = "\n\n".join(f"  - {s}" for s in failed_subs)
+            report += (
+                f"\n\n⚠️ **检索降级声明**：以下 {len(failed_subs)} 个子题检索失败"
+                f"（超时/错误/熔断），本报告未涵盖：\n{decl}"
             )
 
         return {

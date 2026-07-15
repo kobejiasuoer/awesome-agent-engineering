@@ -85,3 +85,6 @@ class SystemState(TypedDict):
     token_usage: Annotated[int, add_int]
     # cost_mode：normal / frugal（软预算80%降级flash）/ over_budget（硬预算触发收尾）
     cost_mode: str
+    # AgentOps L03：诚实降级协议
+    # failed_subtopics 记录检索失败的子题（researcher 上报，writer 在报告里声明）
+    failed_subtopics: Annotated[list[str], operator.add]
