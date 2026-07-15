@@ -46,6 +46,9 @@ def _initial_state(topic: str) -> dict:
         "step_count": 0,
         "truncated": False,
         "action_history": [],
+        # AgentOps L02：轨迹级成本预算
+        "token_usage": 0,
+        "cost_mode": "normal",
     }
 
 

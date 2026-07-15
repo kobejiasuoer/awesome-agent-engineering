@@ -80,3 +80,8 @@ class SystemState(TypedDict):
     truncated: bool
     # 动作签名历史（L01 循环检测）：每经过一个节点记一条「节点名:参数哈希」
     action_history: Annotated[list[str], operator.add]
+    # AgentOps L02：轨迹级成本预算
+    # token_usage 累计本次运行的总 token（取 usage_metadata，取不到按字符/4 估算）
+    token_usage: Annotated[int, add_int]
+    # cost_mode：normal / frugal（软预算80%降级flash）/ over_budget（硬预算触发收尾）
+    cost_mode: str

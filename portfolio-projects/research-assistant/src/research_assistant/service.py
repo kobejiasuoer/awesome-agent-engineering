@@ -78,6 +78,9 @@ def _initial_state(topic: str) -> dict:
         "step_count": 0,
         "truncated": False,
         "action_history": [],
+        # AgentOps L02：轨迹级成本预算
+        "token_usage": 0,
+        "cost_mode": "normal",
     }
 
 
@@ -100,6 +103,10 @@ async def invoke(topic: str, thread_id: str) -> dict:
             reset_executed_codes()
         except Exception:
             pass
+
+    # AgentOps L02：重置本次运行的成本 tracker
+    from .cost_budget import reset_tracker
+    reset_tracker()
 
     async with get_async_saver_context() as saver:
         system = build_system(smart_llm, fast_llm, sub, checkpointer=saver)
@@ -143,6 +150,10 @@ async def stream_research(topic: str, thread_id: str) -> AsyncIterator[dict]:
     fast_llm = make_fast_llm()
     smart_llm = make_smart_llm()
     sub = build_research_subgraph(fast_llm, smart_llm)
+
+    # AgentOps L02：重置本次运行的成本 tracker
+    from .cost_budget import reset_tracker
+    reset_tracker()
 
     try:
         async with get_async_saver_context() as saver:

@@ -17,6 +17,8 @@ from .kb_mcp_client import kb_search
 from .config import settings
 # AgentOps L01：全局步数预算（step_delta 给每个节点记账，不影响现状行为）
 from .step_budget import step_delta as _step_delta
+# AgentOps L02：轨迹级成本预算（token_delta 记 token，record_call 给子图节点用）
+from .cost_budget import token_delta as _token_delta, record_call as _record_call
 
 log = get_logger("nodes")
 
@@ -98,6 +100,7 @@ def make_split(fast_llm):
             f"你是研究规划师。把「{topic}」拆成 {n} 个具体、可独立检索的研究子问题，"
             f"每行一个，只要问题本身，不要编号。"
         )
+        _record_call("split", resp)  # AgentOps L02：记 token（子图无 state 字段，只记 tracker）
         # 清理编号/空白，取前 n 个
         subs = [
             s.strip().lstrip("0123456789.、）) ")
@@ -194,10 +197,12 @@ def make_researcher(fast_llm):
                 f"你是研究员。针对子问题「{subtopic}」，基于以下搜索资料，"
                 f"提炼 2-3 句核心发现（不要照抄，要提炼）：\n\n{search_raw}{memory_instr}"
             )
+            _record_call("researcher", resp)  # AgentOps L02
             finding = f"【{subtopic}】\n  发现：{resp.content.strip()}\n  来源：{source_tag}"
         else:
             # 搜索兜底：LLM 基于自身知识回答（标注无来源，诚实降级）
             resp = fast_llm.invoke(f"用 2-3 句话回答：{subtopic}")
+            _record_call("researcher", resp)  # AgentOps L02
             finding = f"【{subtopic}】\n  发现：{resp.content.strip()}\n  来源：模型知识（联网搜索暂不可用）"
 
         return {"findings": [finding]}  # ⭐ reducer 自动拼接并行结果
@@ -214,6 +219,7 @@ def make_summarize(smart_llm):
             f"你是研究综合分析师。把以下 {len(state['findings'])} 个研究发现，"
             f"整理成一段连贯、有逻辑的研究摘要（300字以内）：\n\n{all_findings}"
         )
+        _record_call("summarize", resp)  # AgentOps L02
         return {"research_summary": resp.content.strip()}
 
     return summarize
@@ -318,6 +324,8 @@ def make_writer(smart_llm):
 
         resp = smart_llm.invoke(prompt)
         report = resp.content.strip()
+        # AgentOps L02：记本次 writer 的 token（含 cost_mode 判断）
+        _tok = _token_delta("writer", resp)
 
         # ── 代码解释器（Frontier L07）──────────────────────────
         # 涉及数值对比/统计时，让 LLM 生成代码 → 沙箱执行 → 结果附报告附录
@@ -364,6 +372,7 @@ def make_writer(smart_llm):
             "report": report,
             "messages": [AIMessage(content=report)],
             **_step_delta("writer", summary[:50]),
+            **_tok,
         }
 
     return writer
@@ -399,9 +408,15 @@ def make_reviewer(smart_llm):
         findings = state.get("findings", [])
 
         # AgentOps L01：步数预算/循环检测超限 → 诚实收尾（强制 pass，标 truncated）
+        # AgentOps L02：成本预算超限同样触发诚实收尾（两个「或」起来）
         # 关键：这里不 raise——带着已有材料直接通过，writer 已标注截断。
         # 这是「诚实收尾」与 recursion_limit「崩溃式收尾」的本质区别。
+        from .cost_budget import should_truncate_for_cost
         truncate, reason = should_truncate(state)
+        if not truncate:
+            truncate, cost_reason = should_truncate_for_cost(state)
+            if truncate:
+                reason = cost_reason
         if truncate:
             return {
                 "review_decision": "pass",
@@ -459,6 +474,7 @@ def make_reviewer(smart_llm):
             f"报告：\n{report}\n\n"
             f"只回复一个词：合格 或 不合格。若不合格，另起一行用一句话说明问题。"
         )
+        _tok = _token_delta("reviewer", resp)  # AgentOps L02
         content = resp.content.strip()
 
         if "不合格" in content or "不合格" in content.split("\n")[0]:
@@ -474,6 +490,7 @@ def make_reviewer(smart_llm):
             "rewrite_count": rewrite_count + 1,
             "feedback": feedback,
             **_step_delta("reviewer", decision),
+            **_tok,
         }
 
     return reviewer

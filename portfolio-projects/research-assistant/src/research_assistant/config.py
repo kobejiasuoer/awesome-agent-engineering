@@ -151,6 +151,15 @@ class Settings(BaseSettings):
     enable_loop_detect: bool = False
     loop_detect_window: int = 3
 
+    # ── 轨迹级成本预算（AgentOps L02 · 轨迹级的钱包）──────────────
+    # 与 ops-L12 静态选型（管单价）正交：本开关管「一次运行的 token 总量」。
+    # Agent 成本是涌现的（步数×每步消耗都不确定），没有刹车会烧穿。
+    # 软预算（80%）进节俭模式（剩余子题降级 flash），硬预算（100%）触发诚实收尾。
+    # 默认关：不破坏现有测试；开启后配合 max_budget_tokens 用。
+    enable_cost_budget: bool = False
+    # 一次运行的 token 硬上限（mock 下为估算值；结构结论同真实）
+    max_budget_tokens: int = 50000
+
 
 @lru_cache
 def get_settings() -> Settings:
