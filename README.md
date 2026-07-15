@@ -6,11 +6,11 @@
 
 [![Tests](https://github.com/kobejiasuoer/awesome-agent-engineering/actions/workflows/tests.yml/badge.svg)](https://github.com/kobejiasuoer/awesome-agent-engineering/actions/workflows/tests.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Lessons](https://img.shields.io/badge/lessons-85-1f883d)](#课程路线)
-[![Tests](https://img.shields.io/badge/tests-266-0969da)](#可验证性)
+[![Lessons](https://img.shields.io/badge/lessons-95-1f883d)](#课程路线)
+[![Tests](https://img.shields.io/badge/tests-485-0969da)](#可验证性)
 [![License](https://img.shields.io/badge/license-MIT-f1e05a)](LICENSE)
 
-这是一套面向 Python 开发者的 **LLM 应用工程实战课程**。85 节课程沿同一条主线递进：先手写核心机制，再用 LangChain / LangGraph 工程化，最后落到两个带测试、评估、API 与 Docker 的完整项目。
+这是一套面向 Python 开发者的 **LLM 应用工程实战课程**。95 节课程沿同一条主线递进：先手写核心机制，再用 LangChain / LangGraph 工程化，最后落到两个带测试、评估、API 与 Docker 的完整项目。
 
 这里不只展示“怎么调 API”，还会回答三个更难的问题：**为什么这样设计、不同方案如何取舍、加入一个机制后怎样证明它真的有效。**
 
@@ -20,12 +20,12 @@
 
 | 课程 | 作品项目 | 自动化测试 | 语言 |
 |---:|---:|---:|---:|
-| 8 门 / 85 节 | 2 个 | 266 项 | 中文 + English |
+| 9 门 / 95 节 | 2 个 | 485 项 | 中文 + English |
 
 - **从原理到框架**：RAG、Function Calling、ReAct 都先手写，再对照框架实现。
 - **从结果到证据**：RAGAS、消融实验、Agent 轨迹评估与 mini-benchmark 贯穿课程。
 - **从 Demo 到工程**：鉴权、限流、日志、追踪、缓存、压测、MCP、Docker 都落到作品项目。
-- **覆盖新方向**：多模态文档理解、Agent Memory、CodeAct、长任务与 GUI Agent。
+- **覆盖新方向**：多模态文档理解、Agent Memory、CodeAct、长任务、GUI Agent 与 Agent 生产可靠性。
 
 ## 先看结果
 
@@ -68,7 +68,7 @@ copy .env.example .env   # macOS / Linux: cp .env.example .env
 ```mermaid
 flowchart LR
     A["RAG 原理"] --> B["Agent 原理"] --> C["框架工程"] --> D["多 Agent 编排"]
-    D --> E["LLMOps"] --> F["多模态文档"] --> G["Agent 前沿"] --> H["GUI Agent"]
+    D --> E["LLMOps"] --> F["多模态文档"] --> G["Agent 前沿"] --> H["GUI Agent"] --> I["Agent 生产可靠性"]
 ```
 
 | 阶段 | 课程 | 核心产出 | 进度 |
@@ -81,18 +81,19 @@ flowchart LR
 | 场景 | [多模态文档智能](doc-intelligence-lessons/) | PDF、OCR、表格、图表、引用溯源 | 10/10 |
 | 前沿 | [智能体前沿](frontier-lessons/) | 记忆、反思、CodeAct、轨迹评估 | 13/13 |
 | 前沿 | [GUI Agent](gui-agent-lessons/) | 浏览器控制、视觉路线、可靠性与安全 | 13/13 |
+| 生产 | [Agent 生产可靠性](agent-ops-lessons/) | 步数/成本预算、熔断降级、幂等审批、断点续跑、混沌评估 | 10/10 |
 
 ## 作品项目
 
 | 项目 | 可核验能力 | 测试 |
 |---|---|---:|
 | [企业知识库问答](portfolio-projects/knowledge-base-qa/) | 混合检索 + rerank、引用、RAGAS、鉴权限流、MCP、多模态文档解析 | 143 |
-| [AI 研究分析助手](portfolio-projects/research-assistant/) | LangGraph 多 Agent、SSE、审稿回路、记忆、CodeAct、轨迹评估、浏览器取证 | 123 |
+| [AI 研究分析助手](portfolio-projects/research-assistant/) | LangGraph 多 Agent、SSE、审稿回路、记忆、CodeAct、轨迹评估、浏览器取证、生产可靠性 | 219 |
 
 两个项目通过 MCP 打通，均提供 FastAPI、Docker、测试与关闭外部能力后的降级路径。它们是课程机制的工程样例；实际生产容量与可靠性仍应在你的部署环境中重新压测和验证。
 
 <details>
-<summary><strong>展开 85 节完整课程目录</strong></summary>
+<summary><strong>展开 95 节完整课程目录</strong></summary>
 
 
 ## 📚 课程一：RAG 手写课程（共 9 节课）
@@ -269,6 +270,25 @@ flowchart LR
 
 </details>
 
+## 🛡️ 课程九：Agent 生产可靠性 / AgentOps（共 10 节课）
+
+> ops-lessons 护的是**一次请求**（鉴权限流守护栏），本课护的是**一条轨迹**——Agent 会自己转很多圈、自己决定下一步，所以风险形态完全不同：死循环、成本超支、故障扩散、危险副作用、中途崩溃。kb-qa 是线性链用不上这些机制，research-assistant 是循环体非用不可，这个不对称本身就是边界证据。课程口吻对齐 ops-lessons（讲「标准做法 + 取舍」的收敛工程知识），每课必有「方案对比」小节。所有改动落到 **research-assistant**，把它从「能力完整的 Deep Research Agent v2」升级为「故障下可生存、危险动作有门控、崩溃可恢复、可靠性有 SLO 数字的**生产可靠 v3**」。十个模块：
+
+| # | 课程 | 你会学到 |
+|---:|---|---|
+| 00 | [全景与基线](agent-ops-lessons/00_overview/) | 护请求 vs 护轨迹的边界 + Agent 生产风险地图 + 六类故障混沌任务集 + 裸基线（爆炸半径全无界） |
+| 01 | [步数与循环](agent-ops-lessons/01_step_budget/) | 全局步数预算（add_int reducer）+ 动作签名循环检测 + 诚实收尾（带部分结果退出，非崩溃） |
+| 02 | [成本预算](agent-ops-lessons/02_cost_budget/) | 轨迹级 token 钱包（usage_metadata 计量）+ 软预算降级 flash / 硬预算诚实收尾 + 分节点成本分摊表 |
+| 03 | [超时熔断与诚实降级](agent-ops-lessons/03_breaker_degrade/) | 手写熔断器三态状态机 + 结构化降级协议（不让「搜索超时」混进材料当事实）+ 降级链 |
+| 04 | [副作用与幂等](agent-ops-lessons/04_sideeffect_idempotent/) | 副作用三级分类 + 幂等键（thread_id+内容指纹）+ sqlite 注册表 + dry-run + 可选 publish 节点 |
+| 05 | [人在环审批](agent-ops-lessons/05_hitl_approval/) | langgraph interrupt/resume 门闸 + 策略分层（first_only 复用幂等键）+ 跨进程恢复（审批可隔夜） |
+| 06 | [断点续跑](agent-ops-lessons/06_durable_resume/) | jobs 任务注册表 + checkpoint 续跑（已完成节点不重做）+ recover_orphans + 与 frontier-L10 账本边界 |
+| 07 | [轨迹级可观测](agent-ops-lessons/07_observability/) | 一次运行一行 run summary 体检报告 + 阈值告警 + 与 ops 请求级日志/frontier 评估三层分层 |
+| 08 | [可靠性评估](agent-ops-lessons/08_chaos_eval/) | 混沌收益矩阵（六类故障×全关全开）+ SLO 卡 + 纯净跑零税回归（成功率 33%→100%） |
+| 09 | [毕业整合](agent-ops-lessons/09_capstone/) | 全机制协同端到端 + research-assistant v3 定稿 + 七机制治理架构 + 全仓课程九注册 |
+
+> 已完成全部 **10 节课** 🎉。**两条贯穿主线**：①爆炸半径主线（L00 量出五种失控的无界半径→每课把一种压到有界：循环→步数有界、成本→预算有界、故障→降级有界、副作用→幂等+审批有界、崩溃→重做量有界）；②自主-控制主线（每个保护机制拿自主性/延迟/人力换安全——闸太紧 Agent 废掉、太松等于裸奔，每课给「这道闸紧还是松」的判断依据）。每课 README 有「方案对比」小节 + 至少一道「设计实验验证」练习。落地后 research-assistant 新增 96 个测试（全量 219 全绿），所有新机制默认关、可降级，纯净跑零税。
+
 ## 可验证性
 
 ```bash
@@ -284,10 +304,10 @@ python -m pytest portfolio-projects/research-assistant/tests -q
 
 ```
 RAG-test/
-├── README.md                  ← 你在这里：八门课程 + 作品集项目总览
-├── requirements.txt           ← 依赖（八门课统一）
+├── README.md                  ← 你在这里：九门课程 + 作品集项目总览
+├── requirements.txt           ← 依赖（九门课统一）
 ├── .env.example               ← API Key 配置模板
-├── data/sample_docs/          ← 练习用的示例文档（八门课共用）
+├── data/sample_docs/          ← 练习用的示例文档（九门课共用）
 ├── data/multimodal_docs/      ← 多模态课程毒文档集（扫描件/表格/图表 PDF + golden 题）
 ├── rag-lessons/               ← 课程一：RAG 手写（9 课，已完成）
 ├── agent-lessons/             ← 课程二：Agent 手写（9 课，已完成）
@@ -297,9 +317,10 @@ RAG-test/
 ├── doc-intelligence-lessons/  ← 课程六：多模态文档智能（10 课，已完成）
 ├── frontier-lessons/          ← 课程七：智能体前沿（13 课，已完成）
 ├── gui-agent-lessons/         ← 课程八：GUI Agent / Computer Use（13 课，已完成）
-├── portfolio-projects/        ← 🚀 生产级作品集项目（学完课程后的落地，ops/docint/frontier/gui 主战场）
+├── agent-ops-lessons/         ← 课程九：Agent 生产可靠性 / AgentOps（10 课，已完成）
+├── portfolio-projects/        ← 🚀 生产级作品集项目（学完课程后的落地，ops/docint/frontier/gui/agentops 主战场）
 │   ├── knowledge-base-qa/     ←   企业知识库问答（RAG，多模态文档智能 v3）
-│   └── research-assistant/    ←   AI 研究分析助手（多智能体 + FastAPI + Docker，会上网）
+│   └── research-assistant/    ←   AI 研究分析助手（多智能体 + FastAPI + Docker，会上网，生产可靠 v3）
 └── docs/                      ← 设计文档与实现计划
 ```
 

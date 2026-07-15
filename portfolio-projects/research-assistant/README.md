@@ -320,6 +320,69 @@ research-assistant/
 
 ---
 
+## 🛡️ 生产可靠性（AgentOps v3）
+
+经 [agent-ops-lessons](../../agent-ops-lessons/)（Agent 生产可靠性课程，10 课）升级，research-assistant 从「能力完整但跑飞了没人管」升级为**生产可靠 v3**——故障下可生存、危险动作有门控、崩溃可恢复、可靠性有 SLO 数字。
+
+> ops-lessons 护的是一次**请求**（kb-qa 的鉴权限流守护栏）；本课护的是一条**轨迹**（Agent 会自己转很多圈、自己决定下一步）。kb-qa 是线性链用不上这些机制，research-assistant 是循环体非用不可——这个不对称本身就是边界证据。
+
+### 七机制治理架构（每个默认关闭，可独立开关 + 降级）
+
+| 机制 | 课程 | 核心能力 | 开关 | 兜住的故障 |
+|------|------|---------|------|-----------|
+| 📏 **全局步数预算** | [L01](../../agent-ops-lessons/01_step_budget/) | add_int reducer 累计步数 + 动作签名循环检测 + 诚实收尾 | `enable_step_budget` | ③ 死循环 |
+| 💰 **轨迹级成本预算** | [L02](../../agent-ops-lessons/02_cost_budget/) | usage_metadata 计量 + 软预算降级 flash / 硬预算诚实收尾 + 分节点分摊表 | `enable_cost_budget` | ⑤ 成本超支 |
+| 🔌 **超时熔断与诚实降级** | [L03](../../agent-ops-lessons/03_breaker_degrade/) | 手写熔断器三态状态机 + 结构化降级协议 + 降级链 | `enable_circuit_breaker` | ①② 慢/坏工具 |
+| 🔑 **副作用与幂等** | [L04](../../agent-ops-lessons/04_sideeffect_idempotent/) | 幂等键(thread_id+内容指纹) + sqlite 注册表 + dry-run + 可选 publish 节点 | `enable_publish` | ⑥ 危险副作用（重放） |
+| 🚦 **人在环审批** | [L05](../../agent-ops-lessons/05_hitl_approval/) | interrupt/resume 门闸 + 策略分层(first_only) + 跨进程恢复 | `enable_hitl` | ⑥ 危险副作用（首次） |
+| 🔄 **断点续跑** | [L06](../../agent-ops-lessons/06_durable_resume/) | jobs 注册表 + checkpoint 续跑(已完成不重做) + recover_orphans | `enable_job_registry` | ④ 进程崩溃 |
+| 📊 **轨迹级可观测** | [L07](../../agent-ops-lessons/07_observability/) | run summary 一行体检报告 + 阈值告警 + 三层分层 | `enable_run_summary` | 可见性 |
+
+### 开关与降级路径
+
+所有七机制**默认关闭**——开关全关时行为与 v2 完全一致（纯净跑零税）。开启后只在故障下生效：
+
+```
+故障 × 兜住机制：
+  ①慢工具   → L03 熔断快速失败 + 结构化降级（不污染材料）
+  ②坏工具   → L03 同上（垃圾不混进 findings）
+  ③循环诱导 → L01 步数预算诚实收尾（带部分结果退出）
+  ④进程崩溃 → L06 checkpoint 续跑（重做量=最后一个未完成节点）+ L04 幂等不重放副作用
+  ⑤预算炸弹 → L02 硬预算刹车（软预算先降级 flash）
+  ⑥危险副作用 → L04 幂等挡重放 + L05 审批挡首次不该执行的
+```
+
+### 可靠性 SLO 卡（来自 [L08](../../agent-ops-lessons/08_chaos_eval/) 混沌收益矩阵）
+
+| SLO 指标 | 全关（裸奔 v2） | 全开（v3） | 改善 |
+|----------|----------------|-----------|------|
+| 任务成功率（含诚实截断） | 33% | 100% | +67% |
+| 预算超支率 | 17% | 0% | -17% |
+| 副作用重复率 | 17% | 0% | -17% |
+| 平均浪费 token | 11917 | 870 | -93% |
+
+> ⚠️ **诚实标注**：以上为 mock 演示数字（基于 L00 裸基线的结构性结论）。真实 API 的绝对数字需 `--real` 模式跑，但「全关 vs 全开」的差异结构不变。复现：`python eval_agent/run_chaos_eval.py`。
+
+### 版本演进
+
+```
+v1（多智能体）          v2（Deep Research）              v3（生产可靠）
+能跑的搜索→写报告  →    有记忆/反思/CodeAct/浏览器  →   +步数/成本/熔断/幂等/审批/恢复/观测
+rag/workflow 课程       frontier + gui-agent 课程        agent-ops 课程
+```
+
+与 kb-qa README 的三版本格式对齐——两个作品集项目现在是对称的：kb-qa 走了 RAG→运维→多模态，research-assistant 走了多智能体→深研究→生产可靠，每一步都有数字。
+
+### 架构文档
+
+详见 [`docs/production-reliability.md`](docs/production-reliability.md)——七机制在双层图上的位置 + 开关降级路径表 + 混沌收益矩阵 + SLO 卡 + v1→v2→v3 演进图。
+
+### 测试覆盖（更新）
+
+**219 个单元测试**（原 123 + AgentOps 新增 96），所有开关组合下全绿。新增测试覆盖：步数预算(16) / 成本预算(17) / 熔断器(15) / 幂等发布(14) / HITL 审批(8) / 断点续跑(11) / run summary(15)。所有新机制默认关、可降级，纯净跑零税。
+
+---
+
 ## ⚠️ 已知限制 & 后续演进
 
 | 限制 | 影响 | 演进方向 |

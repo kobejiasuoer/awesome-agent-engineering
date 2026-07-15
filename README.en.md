@@ -6,11 +6,11 @@
 
 [![Tests](https://github.com/kobejiasuoer/awesome-agent-engineering/actions/workflows/tests.yml/badge.svg)](https://github.com/kobejiasuoer/awesome-agent-engineering/actions/workflows/tests.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Lessons](https://img.shields.io/badge/lessons-85-1f883d)](#learning-path)
-[![Tests](https://img.shields.io/badge/tests-266-0969da)](#verification)
+[![Lessons](https://img.shields.io/badge/lessons-95-1f883d)](#learning-path)
+[![Tests](https://img.shields.io/badge/tests-485-0969da)](#verification)
 [![License](https://img.shields.io/badge/license-MIT-f1e05a)](LICENSE)
 
-A hands-on **LLM application engineering course** for Python developers. Its 85 lessons follow one continuous path: hand-write the core mechanisms, translate them into LangChain and LangGraph, then integrate them into two tested projects with evaluation, APIs, and Docker support.
+A hands-on **LLM application engineering course** for Python developers. Its 95 lessons follow one continuous path: hand-write the core mechanisms, translate them into LangChain and LangGraph, then integrate them into two tested projects with evaluation, APIs, and Docker support.
 
 This repository goes beyond API recipes. It asks: **Why choose this design? What are the trade-offs? How can an experiment prove that a new mechanism actually helps?**
 
@@ -20,12 +20,12 @@ This repository goes beyond API recipes. It asks: **Why choose this design? What
 
 | Courses | Portfolio apps | Automated tests | Languages |
 |---:|---:|---:|---:|
-| 8 / 85 lessons | 2 | 266 | Chinese + English |
+| 9 / 95 lessons | 2 | 485 | Chinese + English |
 
 - **Principles before frameworks:** hand-written RAG, Function Calling, and ReAct are paired with framework implementations.
 - **Evidence before claims:** RAGAS, ablations, trajectory evaluation, and local mini-benchmarks run through the curriculum.
 - **Engineering beyond demos:** auth, rate limiting, tracing, caching, load testing, MCP, and Docker land in the portfolio apps.
-- **Current topics:** multimodal documents, Agent memory, CodeAct, long-running tasks, and GUI Agents.
+- **Current topics:** multimodal documents, Agent memory, CodeAct, long-running tasks, GUI Agents, and Agent production reliability.
 
 ## See the results
 
@@ -68,7 +68,7 @@ Install `requirements.txt` only when you need the complete course stack; browser
 ```mermaid
 flowchart LR
     A["RAG fundamentals"] --> B["Agent fundamentals"] --> C["Frameworks"] --> D["Multi-Agent workflows"]
-    D --> E["LLMOps"] --> F["Multimodal docs"] --> G["Agent frontiers"] --> H["GUI Agents"]
+    D --> E["LLMOps"] --> F["Multimodal docs"] --> G["Agent frontiers"] --> H["GUI Agents"] --> I["Agent production reliability"]
 ```
 
 | Stage | Course | Main outcome | Progress |
@@ -81,13 +81,14 @@ flowchart LR
 | Applied | [Multimodal Documents](doc-intelligence-lessons/) | PDF, OCR, tables, charts, citation provenance | 10/10 |
 | Frontier | [Agent Frontiers](frontier-lessons/) | Memory, reflection, CodeAct, trajectory evaluation | 13/13 |
 | Frontier | [GUI Agents](gui-agent-lessons/) | Browser control, vision, reliability, security | 13/13 |
+| Production | [Agent production reliability](agent-ops-lessons/) | Step/cost budgets, circuit breaker, idempotent approvals, durable resume, chaos eval | 10/10 |
 
 ## Portfolio projects
 
 | Project | Verifiable capabilities | Tests |
 |---|---|---:|
 | [Enterprise Knowledge Base QA](portfolio-projects/knowledge-base-qa/) | Hybrid retrieval + reranking, citations, RAGAS, auth, rate limits, MCP, multimodal parsing | 143 |
-| [AI Research Assistant](portfolio-projects/research-assistant/) | LangGraph multi-Agent flow, SSE, reviews, memory, CodeAct, trajectory evaluation, browser evidence | 123 |
+| [AI Research Assistant](portfolio-projects/research-assistant/) | LangGraph multi-Agent flow, SSE, reviews, memory, CodeAct, trajectory evaluation, browser evidence, production reliability | 219 |
 
 Both projects expose FastAPI services, Docker setups, tests, and fallback paths when optional external capabilities are disabled. They are engineering references, not universal production-capacity guarantees; load-test and validate them in your own deployment environment.
 
@@ -268,6 +269,25 @@ The first seven courses grew research-assistant into a deep agent that **thinks*
 
 </details>
 
+## 🛡️ Course 9: Agent Production Reliability / AgentOps (10 lessons)
+
+> ops-lessons protects **a single request** (auth, rate limiting, guardrails); this course protects **a trajectory**—an Agent that loops many times and decides its own next step, so the failure modes are fundamentally different: infinite loops, cost blowouts, fault propagation, dangerous side effects, mid-run crashes. kb-qa is a linear chain that doesn't need these mechanisms; research-assistant is a loop body that can't ship without them—this asymmetry is itself evidence of the boundary. The style follows ops-lessons (teaching "the standard practice + the trade-offs"); each lesson has a "comparison of approaches" section. All changes land on **research-assistant**, upgrading it from the capable "Deep Research Agent v2" into a **production-reliable v3: survives faults, gates dangerous actions, recovers from crashes, and has SLO numbers**. Ten modules:
+
+| # | Lesson | What you learn |
+|---:|---|---|
+| 00 | [Landscape & baseline](agent-ops-lessons/00_overview/) | Request-guard vs trajectory-guard boundary + risk map + six-fault chaos suite + bare baseline (all blast radii unbounded) |
+| 01 | [Steps & loops](agent-ops-lessons/01_step_budget/) | Global step budget (add_int reducer) + action-signature loop detection + honest truncation (partial result, not a crash) |
+| 02 | [Cost budget](agent-ops-lessons/02_cost_budget/) | Trajectory-level token wallet (usage_metadata metering) + soft-budget downgrade / hard-budget truncate + per-node cost table |
+| 03 | [Timeout, circuit breaker & honest degradation](agent-ops-lessons/03_breaker_degrade/) | Hand-written 3-state circuit breaker + structured degradation protocol + fallback chain |
+| 04 | [Side effects & idempotency](agent-ops-lessons/04_sideeffect_idempotent/) | Side-effect classification + idempotency key (thread_id + content hash) + sqlite registry + dry-run + optional publish node |
+| 05 | [Human-in-the-loop approval](agent-ops-lessons/05_hitl_approval/) | langgraph interrupt/resume gate + policy layering (first_only reuses the idempotency key) + cross-process resume |
+| 06 | [Durable resume](agent-ops-lessons/06_durable_resume/) | jobs registry + checkpoint resume (completed nodes not re-run) + recover_orphans + boundary vs frontier-L10 ledger |
+| 07 | [Trajectory observability](agent-ops-lessons/07_observability/) | One-line run-summary health report + threshold alerts + three-layer split with request logs / evaluation |
+| 08 | [Reliability evaluation](agent-ops-lessons/08_chaos_eval/) | Chaos gains matrix (six faults × all-off/all-on) + SLO card + clean-run zero-tax regression (success 33%→100%) |
+| 09 | [Capstone](agent-ops-lessons/09_capstone/) | End-to-end with all mechanisms + research-assistant v3 finalization + seven-mechanism governance + repo-wide Course 9 registration |
+
+> All **10 lessons** done 🎉. **Two through-lines:** ① a blast-radius main line (L00 measures five unbounded failure modes → each lesson bounds one: loops→step-bounded, cost→budget-bounded, faults→degradation-bounded, side-effects→idempotent+approval-bounded, crashes→redo-bounded); ② an autonomy-vs-control main line (every protection trades autonomy/latency/human-effort for safety—too tight and the Agent is useless, too loose and it's reckless; each lesson gives the "when tight, when loose" criterion). Each lesson's README has a "comparison of approaches" section + at least one "design experiment" exercise. Landing adds 96 tests to research-assistant (219 total, all green); all new mechanisms default off with zero tax on clean runs.
+
 ## Verification
 
 ```bash
@@ -284,8 +304,8 @@ External model calls are mocked by default so CI remains reproducible. Real-mode
 ```
 RAG-test/
 ├── README.md                  ← Course index (Chinese)
-├── README.en.md               ← You are here: eight courses + portfolio overview (English)
-├── requirements.txt           ← Dependencies (shared across all eight courses)
+├── README.en.md               ← You are here: nine courses + portfolio overview (English)
+├── requirements.txt           ← Dependencies (shared across all nine courses)
 ├── .env.example               ← API key config template
 ├── data/sample_docs/          ← Sample docs for exercises (shared across courses)
 ├── data/multimodal_docs/      ← Multimodal course poison doc set (scan/table/chart PDF + golden questions)
@@ -297,9 +317,10 @@ RAG-test/
 ├── doc-intelligence-lessons/  ← Course 6: Multimodal Document Intelligence (10 lessons, done)
 ├── frontier-lessons/          ← Course 7: Agent Frontiers (13 lessons, done)
 ├── gui-agent-lessons/         ← Course 8: GUI Agent / Computer Use (13 lessons, done)
-├── portfolio-projects/        ← 🚀 Production-grade portfolio projects (landings after the courses; main battleground for ops/docint/frontier/gui)
+├── agent-ops-lessons/         ← Course 9: Agent Production Reliability / AgentOps (10 lessons, done)
+├── portfolio-projects/        ← 🚀 Production-grade portfolio projects (landings after the courses; main battleground for ops/docint/frontier/gui/agentops)
 │   ├── knowledge-base-qa/     ←   Enterprise KB QA (RAG, multimodal document intelligence v3)
-│   └── research-assistant/    ←   AI Research Assistant (multi-agent + FastAPI + Docker)
+│   └── research-assistant/    ←   AI Research Assistant (multi-agent + FastAPI + Docker, production-reliable v3)
 └── docs/                      ← Design docs and implementation plans
 ```
 
