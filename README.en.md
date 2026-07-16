@@ -267,8 +267,6 @@ The first seven courses grew research-assistant into a deep agent that **thinks*
 
 > All **13 lessons** done 🎉. **Two through-lines:** ① an evaluation main line (L00 bare baseline → L08 mini-benchmark → L11 gains table quantifying every mechanism); ② an observation–action interface main line (L02 observation space → L03 action DSL → L04 loop closure—the context-engineering theme extended to GUI). Each lesson's README has a "schools of thought" section + at least one "design experiment to validate" exercise. Landing adds 19 browser tests to research-assistant (123 total, all green); `enable_browser` defaults to off with intact fallback paths.
 
-</details>
-
 ## 🛡️ Course 9: Agent Production Reliability / AgentOps (10 lessons)
 
 > ops-lessons protects **a single request** (auth, rate limiting, guardrails); this course protects **a trajectory**—an Agent that loops many times and decides its own next step, so the failure modes are fundamentally different: infinite loops, cost blowouts, fault propagation, dangerous side effects, mid-run crashes. kb-qa is a linear chain that doesn't need these mechanisms; research-assistant is a loop body that can't ship without them—this asymmetry is itself evidence of the boundary. The style follows ops-lessons (teaching "the standard practice + the trade-offs"); each lesson has a "comparison of approaches" section. All changes land on **research-assistant**, upgrading it from the capable "Deep Research Agent v2" into a **production-reliable v3: survives faults, gates dangerous actions, recovers from crashes, and has SLO numbers**. Ten modules:
@@ -287,6 +285,8 @@ The first seven courses grew research-assistant into a deep agent that **thinks*
 | 09 | [Capstone](agent-ops-lessons/09_capstone/) | End-to-end with all mechanisms + research-assistant v3 finalization + seven-mechanism governance + repo-wide Course 9 registration |
 
 > All **10 lessons** done 🎉. **Two through-lines:** ① a blast-radius main line (L00 measures five unbounded failure modes → each lesson bounds one: loops→step-bounded, cost→budget-bounded, faults→degradation-bounded, side-effects→idempotent+approval-bounded, crashes→redo-bounded); ② an autonomy-vs-control main line (every protection trades autonomy/latency/human-effort for safety—too tight and the Agent is useless, too loose and it's reckless; each lesson gives the "when tight, when loose" criterion). Each lesson's README has a "comparison of approaches" section + at least one "design experiment" exercise. Landing adds 96 tests to research-assistant (219 total, all green); all new mechanisms default off with zero tax on clean runs.
+
+</details>
 
 ## Verification
 
