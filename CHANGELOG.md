@@ -6,6 +6,7 @@
 
 ### Added
 
+- 课程十「常驻主动式 Agent / Ambient」（10 课）：调度触发、变化检测、增量研究、打扰决策、收件箱、常驻守护、时段预算与收益矩阵评估；research-assistant 升级为常驻主动 v4（新增 112 项测试，全仓 474）
 - 中英文 README 首屏、学习路线、作品项目截图与可验证性说明
 - 零依赖、零 API Key 的离线 RAG 导览 `quickstart.py`
 - 第一课轻量依赖文件 `requirements-quickstart.txt`

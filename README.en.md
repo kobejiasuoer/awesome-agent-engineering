@@ -6,11 +6,11 @@
 
 [![Tests](https://github.com/kobejiasuoer/awesome-agent-engineering/actions/workflows/tests.yml/badge.svg)](https://github.com/kobejiasuoer/awesome-agent-engineering/actions/workflows/tests.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Lessons](https://img.shields.io/badge/lessons-95-1f883d)](#learning-path)
-[![Tests](https://img.shields.io/badge/tests-362-0969da)](#verification)
+[![Lessons](https://img.shields.io/badge/lessons-105-1f883d)](#learning-path)
+[![Tests](https://img.shields.io/badge/tests-474-0969da)](#verification)
 [![License](https://img.shields.io/badge/license-MIT-f1e05a)](LICENSE)
 
-A hands-on **LLM application engineering course** for Python developers. Its 95 lessons follow one continuous path: hand-write the core mechanisms, translate them into LangChain and LangGraph, then integrate them into two tested projects with evaluation, APIs, and Docker support.
+A hands-on **LLM application engineering course** for Python developers. Its 105 lessons follow one continuous path: hand-write the core mechanisms, translate them into LangChain and LangGraph, then integrate them into two tested projects with evaluation, APIs, and Docker support.
 
 This repository goes beyond API recipes. It asks: **Why choose this design? What are the trade-offs? How can an experiment prove that a new mechanism actually helps?**
 
@@ -20,12 +20,12 @@ This repository goes beyond API recipes. It asks: **Why choose this design? What
 
 | Courses | Portfolio apps | Automated tests | Languages |
 |---:|---:|---:|---:|
-| 9 / 95 lessons | 2 | 362 | Chinese + English |
+| 10 / 105 lessons | 2 | 474 | Chinese + English |
 
 - **Principles before frameworks:** hand-written RAG, Function Calling, and ReAct are paired with framework implementations.
 - **Evidence before claims:** RAGAS, ablations, trajectory evaluation, and local mini-benchmarks run through the curriculum.
 - **Engineering beyond demos:** auth, rate limiting, tracing, caching, load testing, MCP, and Docker land in the portfolio apps.
-- **Current topics:** multimodal documents, Agent memory, CodeAct, long-running tasks, GUI Agents, and Agent production reliability.
+- **Current topics:** multimodal documents, Agent memory, CodeAct, long-running tasks, GUI Agents, Agent production reliability, and ambient (always-on proactive) Agents.
 
 ## See the results
 
@@ -68,7 +68,7 @@ Install `requirements.txt` only when you need the complete course stack; browser
 ```mermaid
 flowchart LR
     A["RAG fundamentals"] --> B["Agent fundamentals"] --> C["Frameworks"] --> D["Multi-Agent workflows"]
-    D --> E["LLMOps"] --> F["Multimodal docs"] --> G["Agent frontiers"] --> H["GUI Agents"] --> I["Agent production reliability"]
+    D --> E["LLMOps"] --> F["Multimodal docs"] --> G["Agent frontiers"] --> H["GUI Agents"] --> I["Agent production reliability"] --> J["Ambient Agents"]
 ```
 
 | Stage | Course | Main outcome | Progress |
@@ -82,18 +82,19 @@ flowchart LR
 | Frontier | [Agent Frontiers](frontier-lessons/) | Memory, reflection, CodeAct, trajectory evaluation | 13/13 |
 | Frontier | [GUI Agents](gui-agent-lessons/) | Browser control, vision, reliability, security | 13/13 |
 | Production | [Agent production reliability](agent-ops-lessons/) | Step/cost budgets, circuit breaker, idempotent approvals, durable resume, chaos eval | 10/10 |
+| Frontier | [Ambient Agents](ambient-agent-lessons/) | Scheduled triggers, change detection, incremental research, interruption policy, always-on operations | 10/10 |
 
 ## Portfolio projects
 
 | Project | Verifiable capabilities | Tests |
 |---|---|---:|
 | [Enterprise Knowledge Base QA](portfolio-projects/knowledge-base-qa/) | Hybrid retrieval + reranking, citations, RAGAS, auth, rate limits, MCP, multimodal parsing | 143 |
-| [AI Research Assistant](portfolio-projects/research-assistant/) | LangGraph multi-Agent flow, SSE, reviews, memory, CodeAct, trajectory evaluation, browser evidence, production reliability | 219 |
+| [AI Research Assistant](portfolio-projects/research-assistant/) | LangGraph multi-Agent flow, SSE, reviews, memory, CodeAct, trajectory evaluation, browser evidence, production reliability, ambient mode | 331 |
 
 Both projects expose FastAPI services, Docker setups, tests, and fallback paths when optional external capabilities are disabled. They are engineering references, not universal production-capacity guarantees; load-test and validate them in your own deployment environment.
 
 <details>
-<summary><strong>Expand the complete 85-lesson catalog</strong></summary>
+<summary><strong>Expand the complete 105-lesson catalog</strong></summary>
 
 
 ## 📚 Course 1: Hand-written RAG (9 lessons)
@@ -286,6 +287,26 @@ The first seven courses grew research-assistant into a deep agent that **thinks*
 
 > All **10 lessons** done 🎉. **Two through-lines:** ① a blast-radius main line (L00 measures five unbounded failure modes → each lesson bounds one: loops→step-bounded, cost→budget-bounded, faults→degradation-bounded, side-effects→idempotent+approval-bounded, crashes→redo-bounded); ② an autonomy-vs-control main line (every protection trades autonomy/latency/human-effort for safety—too tight and the Agent is useless, too loose and it's reckless; each lesson gives the "when tight, when loose" criterion). Each lesson's README has a "comparison of approaches" section + at least one "design experiment" exercise. Landing adds 96 tests to research-assistant (219 total, all green); all new mechanisms default off with zero tax on clean runs.
 
+
+## 🌙 Course 10: Ambient / Always-on Proactive Agents (10 lessons)
+
+> The first nine courses build **conversational** (pull) Agents: a human initiates, the Agent answers, the run ends. This course inverts the paradigm (**push**): the Agent lives in the background, wakes on schedule, decides what changed in the world, and only interrupts when it is worth your attention. An active 2025–2026 frontier (OpenAI scheduled tasks / Pulse, LangChain ambient agents, Claude Code background tasks all point here). All landings go to **research-assistant**, upgrading it from "production-reliable v3" to an **ambient-proactive v4** that wakes itself, researches only what changed, knows when to speak, and cannot die silently.
+
+| # | Lesson | What you learn |
+|---:|---|---|
+| 00 | [Landscape & baseline](ambient-agent-lessons/00_overview/) | Five-step paradigm inversion + request→trajectory→service boundary + 5-day simulated timeline + manual-watch bare baseline |
+| 01 | [Triggers & scheduling](ambient-agent-lessons/01_schedule_trigger/) | Hand-written scheduler: fixed shift grid + countable missed shifts + injectable clock (5 days of scheduling tested in seconds) |
+| 02 | [Sources & change detection](ambient-agent-lessons/02_source_watch/) | Item-level content hashing + snapshot diff + two disciplines ("no change" is a first-class result / "couldn't see" ≠ "no change") |
+| 03 | [Incremental research loop](ambient-agent-lessons/03_incremental_research/) | Focus-as-subtopics (skip re-splitting) + prior-conclusion injection + ✏️ correction briefs (TaskLedger joins the runtime main path) |
+| 04 | [Interruption policy](ambient-agent-lessons/04_proactivity/) | major/minor/none grading + hoard-don't-drop degradation + daily interruption quota + three-policy comparison |
+| 05 | [Inbox & agency levels](ambient-agent-lessons/05_inbox_agency/) | Five-channel inbox + overnight approvals (interrupt waits in the checkpoint) + agency ladder (notify/propose/act) |
+| 06 | [Daemon lifecycle](ambient-agent-lessons/06_daemon_lifecycle/) | AmbientDaemon wires everything + one failed cycle never kills the daemon + two-layer recovery + overlap skip + graceful stop |
+| 07 | [Period budget & ambient observability](ambient-agent-lessons/07_period_budget/) | Third budget layer (daily total) + adaptive backoff + heartbeat absence detection + one-line daily report |
+| 08 | [Ambient evaluation](ambient-agent-lessons/08_ambient_eval/) | Five configs × six-metric gains matrix (cron tier = baseline, proven / tokens −79% / interruptions 5→1 / absence detectable) |
+| 09 | [Capstone](ambient-agent-lessons/09_capstone/) | "A week of v4" end-to-end with all eight switches on + research-assistant v4 finalization + repo-wide Course 10 registration |
+
+> All **10 lessons** done 🎉. **Two through-lines:** ① a paradigm-inversion main line (five steps—who initiates / what to research / who diffs / when to speak / who keeps watch—move from human to machine lesson by lesson; "the cron tier ties the baseline on all six metrics" proves inversion ≠ mere timing automation); ② an attention-economy main line (an ambient Agent spends two currencies that belong to others: the user's attention and overnight tokens—grading + quotas + the period wallet make both auditable). Each lesson's README has a "comparison of approaches" section + at least one "design experiment" exercise. Landing adds 112 tests to research-assistant (331 total, all green); all eight switches default off with zero tax on clean runs, and every test runs with zero real waiting (injectable clock).
+
 </details>
 
 ## Verification
@@ -304,8 +325,8 @@ External model calls are mocked by default so CI remains reproducible. Real-mode
 ```
 RAG-test/
 ├── README.md                  ← Course index (Chinese)
-├── README.en.md               ← You are here: nine courses + portfolio overview (English)
-├── requirements.txt           ← Dependencies (shared across all nine courses)
+├── README.en.md               ← You are here: ten courses + portfolio overview (English)
+├── requirements.txt           ← Dependencies (shared across all ten courses)
 ├── .env.example               ← API key config template
 ├── data/sample_docs/          ← Sample docs for exercises (shared across courses)
 ├── data/multimodal_docs/      ← Multimodal course poison doc set (scan/table/chart PDF + golden questions)
@@ -318,9 +339,10 @@ RAG-test/
 ├── frontier-lessons/          ← Course 7: Agent Frontiers (13 lessons, done)
 ├── gui-agent-lessons/         ← Course 8: GUI Agent / Computer Use (13 lessons, done)
 ├── agent-ops-lessons/         ← Course 9: Agent Production Reliability / AgentOps (10 lessons, done)
-├── portfolio-projects/        ← 🚀 Production-grade portfolio projects (landings after the courses; main battleground for ops/docint/frontier/gui/agentops)
+├── ambient-agent-lessons/     ← Course 10: Ambient / Always-on Proactive Agents (10 lessons, done)
+├── portfolio-projects/        ← 🚀 Production-grade portfolio projects (landings after the courses; main battleground for ops/docint/frontier/gui/agentops/ambient)
 │   ├── knowledge-base-qa/     ←   Enterprise KB QA (RAG, multimodal document intelligence v3)
-│   └── research-assistant/    ←   AI Research Assistant (multi-agent + FastAPI + Docker, production-reliable v3)
+│   └── research-assistant/    ←   AI Research Assistant (multi-agent + FastAPI + Docker, ambient-proactive v4)
 └── docs/                      ← Design docs and implementation plans
 ```
 

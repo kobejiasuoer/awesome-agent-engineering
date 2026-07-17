@@ -6,11 +6,11 @@
 
 [![Tests](https://github.com/kobejiasuoer/awesome-agent-engineering/actions/workflows/tests.yml/badge.svg)](https://github.com/kobejiasuoer/awesome-agent-engineering/actions/workflows/tests.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Lessons](https://img.shields.io/badge/lessons-95-1f883d)](#课程路线)
-[![Tests](https://img.shields.io/badge/tests-362-0969da)](#可验证性)
+[![Lessons](https://img.shields.io/badge/lessons-105-1f883d)](#课程路线)
+[![Tests](https://img.shields.io/badge/tests-474-0969da)](#可验证性)
 [![License](https://img.shields.io/badge/license-MIT-f1e05a)](LICENSE)
 
-这是一套面向 Python 开发者的 **LLM 应用工程实战课程**。95 节课程沿同一条主线递进：先手写核心机制，再用 LangChain / LangGraph 工程化，最后落到两个带测试、评估、API 与 Docker 的完整项目。
+这是一套面向 Python 开发者的 **LLM 应用工程实战课程**。105 节课程沿同一条主线递进：先手写核心机制，再用 LangChain / LangGraph 工程化，最后落到两个带测试、评估、API 与 Docker 的完整项目。
 
 这里不只展示“怎么调 API”，还会回答三个更难的问题：**为什么这样设计、不同方案如何取舍、加入一个机制后怎样证明它真的有效。**
 
@@ -20,12 +20,12 @@
 
 | 课程 | 作品项目 | 自动化测试 | 语言 |
 |---:|---:|---:|---:|
-| 9 门 / 95 节 | 2 个 | 362 项 | 中文 + English |
+| 10 门 / 105 节 | 2 个 | 474 项 | 中文 + English |
 
 - **从原理到框架**：RAG、Function Calling、ReAct 都先手写，再对照框架实现。
 - **从结果到证据**：RAGAS、消融实验、Agent 轨迹评估与 mini-benchmark 贯穿课程。
 - **从 Demo 到工程**：鉴权、限流、日志、追踪、缓存、压测、MCP、Docker 都落到作品项目。
-- **覆盖新方向**：多模态文档理解、Agent Memory、CodeAct、长任务、GUI Agent 与 Agent 生产可靠性。
+- **覆盖新方向**：多模态文档理解、Agent Memory、CodeAct、长任务、GUI Agent、Agent 生产可靠性与常驻主动 Agent。
 
 ## 先看结果
 
@@ -68,7 +68,7 @@ copy .env.example .env   # macOS / Linux: cp .env.example .env
 ```mermaid
 flowchart LR
     A["RAG 原理"] --> B["Agent 原理"] --> C["框架工程"] --> D["多 Agent 编排"]
-    D --> E["LLMOps"] --> F["多模态文档"] --> G["Agent 前沿"] --> H["GUI Agent"] --> I["Agent 生产可靠性"]
+    D --> E["LLMOps"] --> F["多模态文档"] --> G["Agent 前沿"] --> H["GUI Agent"] --> I["Agent 生产可靠性"] --> J["常驻主动 Agent"]
 ```
 
 | 阶段 | 课程 | 核心产出 | 进度 |
@@ -82,18 +82,19 @@ flowchart LR
 | 前沿 | [智能体前沿](frontier-lessons/) | 记忆、反思、CodeAct、轨迹评估 | 13/13 |
 | 前沿 | [GUI Agent](gui-agent-lessons/) | 浏览器控制、视觉路线、可靠性与安全 | 13/13 |
 | 生产 | [Agent 生产可靠性](agent-ops-lessons/) | 步数/成本预算、熔断降级、幂等审批、断点续跑、混沌评估 | 10/10 |
+| 前沿 | [常驻主动 Agent](ambient-agent-lessons/) | 调度触发、变化检测、增量研究、打扰决策、常驻运营 | 10/10 |
 
 ## 作品项目
 
 | 项目 | 可核验能力 | 测试 |
 |---|---|---:|
 | [企业知识库问答](portfolio-projects/knowledge-base-qa/) | 混合检索 + rerank、引用、RAGAS、鉴权限流、MCP、多模态文档解析 | 143 |
-| [AI 研究分析助手](portfolio-projects/research-assistant/) | LangGraph 多 Agent、SSE、审稿回路、记忆、CodeAct、轨迹评估、浏览器取证、生产可靠性 | 219 |
+| [AI 研究分析助手](portfolio-projects/research-assistant/) | LangGraph 多 Agent、SSE、审稿回路、记忆、CodeAct、轨迹评估、浏览器取证、生产可靠性、常驻主动 | 331 |
 
 两个项目通过 MCP 打通，均提供 FastAPI、Docker、测试与关闭外部能力后的降级路径。它们是课程机制的工程样例；实际生产容量与可靠性仍应在你的部署环境中重新压测和验证。
 
 <details>
-<summary><strong>展开 95 节完整课程目录</strong></summary>
+<summary><strong>展开 105 节完整课程目录</strong></summary>
 
 
 ## 📚 课程一：RAG 手写课程（共 9 节课）
@@ -287,6 +288,26 @@ flowchart LR
 
 > 已完成全部 **10 节课** 🎉。**两条贯穿主线**：①爆炸半径主线（L00 量出五种失控的无界半径→每课把一种压到有界：循环→步数有界、成本→预算有界、故障→降级有界、副作用→幂等+审批有界、崩溃→重做量有界）；②自主-控制主线（每个保护机制拿自主性/延迟/人力换安全——闸太紧 Agent 废掉、太松等于裸奔，每课给「这道闸紧还是松」的判断依据）。每课 README 有「方案对比」小节 + 至少一道「设计实验验证」练习。落地后 research-assistant 新增 96 个测试（全量 219 全绿），所有新机制默认关、可降级，纯净跑零税。
 
+
+## 🌙 课程十：常驻主动式 Agent / Ambient（共 10 节课）
+
+> 前九门课的 Agent 全是**会话式**（pull）：人发起、Agent 应答、跑完即散——人忘了问就全盲。本课把范式**倒过来**（push）：Agent 常驻后台、由调度器叫醒、自己判断世界变了什么、只在值得打扰时主动找人。这是 2025–2026 的活跃前沿（OpenAI scheduled tasks / Pulse、LangChain ambient agents、Claude Code 后台任务同向探索），课程讲流派与取舍。所有改动落到 **research-assistant**，把它从「生产可靠 v3」升级为「自己醒、只研究变化、知道何时开口、死了有人知道的**常驻主动 v4**」。十个模块：
+
+| # | 课程 | 你会学到 |
+|---:|---|---|
+| 00 | [全景与基线](ambient-agent-lessons/00_overview/) | 范式倒置五环节 + 请求→轨迹→服务三层边界 + 5 日模拟时间线 + 人肉盯梢裸基线 |
+| 01 | [触发与调度](ambient-agent-lessons/01_schedule_trigger/) | 手写调度器：固定班次网格 + missed 可数 + 可注入时钟（5 天调度秒级可测） |
+| 02 | [信源与变化检测](ambient-agent-lessons/02_source_watch/) | item 级内容哈希 + 快照 diff + 两条纪律（「没有变化」是一等公民 /「没能看到」≠「没有变化」） |
+| 03 | [增量研究回路](ambient-agent-lessons/03_incremental_research/) | 焦点即子题（跳过拆题）+ 旧结论注入 + ✏️ 修正简报（TaskLedger 首次接入运行时主链路） |
+| 04 | [打扰决策](ambient-agent-lessons/04_proactivity/) | major/minor/none 判级 + 宁攒勿丢降级 + 每日打扰配额 + 三政策对比（全课程价值观核心） |
+| 05 | [收件箱与自主级别](ambient-agent-lessons/05_inbox_agency/) | 五通道收件箱 + 隔夜审批（interrupt 在 checkpoint 里等人）+ agency 三级阶梯（notify/propose/act） |
+| 06 | [常驻生命周期](ambient-agent-lessons/06_daemon_lifecycle/) | AmbientDaemon 串联全部机制 + 单轮失败不倒 + 两层恢复 + overlap skip + 优雅退出 |
+| 07 | [时段预算与常驻可观测](ambient-agent-lessons/07_period_budget/) | 第三层钱包（日总量）+ 自适应退避 + 心跳缺勤检出 + 一天一行日报 |
+| 08 | [常驻评估](ambient-agent-lessons/08_ambient_eval/) | 五档配置 × 六指标收益矩阵（cron 档=基线实证 / token -79% / 打扰 5→1 / 缺勤可检出） |
+| 09 | [毕业整合](ambient-agent-lessons/09_capstone/) | 八机制全开的「v4 的一周」端到端 + research-assistant v4 定稿 + 全仓课程十注册 |
+
+> 已完成全部 **10 节课** 🎉。**两条贯穿主线**：①范式倒置主线（五个环节——谁发起/研究什么/谁 diff/何时开口/谁守着——逐课从人转给机器；「cron 档六指标与基线全同」证明倒置≠定时自动化）；②注意力经济主线（常驻 Agent 花两种别人的钱：用户的注意力与睡觉时的 token，判级+配额+时段钱包两本账都可审计）。每课 README 有「流派对比」小节 + 至少一道「设计实验验证」练习。落地后 research-assistant 新增 112 个测试（全量 331 全绿），八开关默认关、可降级，纯净跑零税，全部测试零真实等待（可注入时钟）。
+
 </details>
 
 ## 可验证性
@@ -304,10 +325,10 @@ python -m pytest portfolio-projects/research-assistant/tests -q
 
 ```
 RAG-test/
-├── README.md                  ← 你在这里：九门课程 + 作品集项目总览
-├── requirements.txt           ← 依赖（九门课统一）
+├── README.md                  ← 你在这里：十门课程 + 作品集项目总览
+├── requirements.txt           ← 依赖（十门课统一）
 ├── .env.example               ← API Key 配置模板
-├── data/sample_docs/          ← 练习用的示例文档（九门课共用）
+├── data/sample_docs/          ← 练习用的示例文档（十门课共用）
 ├── data/multimodal_docs/      ← 多模态课程毒文档集（扫描件/表格/图表 PDF + golden 题）
 ├── rag-lessons/               ← 课程一：RAG 手写（9 课，已完成）
 ├── agent-lessons/             ← 课程二：Agent 手写（9 课，已完成）
@@ -318,9 +339,10 @@ RAG-test/
 ├── frontier-lessons/          ← 课程七：智能体前沿（13 课，已完成）
 ├── gui-agent-lessons/         ← 课程八：GUI Agent / Computer Use（13 课，已完成）
 ├── agent-ops-lessons/         ← 课程九：Agent 生产可靠性 / AgentOps（10 课，已完成）
-├── portfolio-projects/        ← 🚀 生产级作品集项目（学完课程后的落地，ops/docint/frontier/gui/agentops 主战场）
+├── ambient-agent-lessons/     ← 课程十：常驻主动式 Agent / Ambient（10 课，已完成）
+├── portfolio-projects/        ← 🚀 生产级作品集项目（学完课程后的落地，ops/docint/frontier/gui/agentops/ambient 主战场）
 │   ├── knowledge-base-qa/     ←   企业知识库问答（RAG，多模态文档智能 v3）
-│   └── research-assistant/    ←   AI 研究分析助手（多智能体 + FastAPI + Docker，会上网，生产可靠 v3）
+│   └── research-assistant/    ←   AI 研究分析助手（多智能体 + FastAPI + Docker，会上网，常驻主动 v4）
 └── docs/                      ← 设计文档与实现计划
 ```
 

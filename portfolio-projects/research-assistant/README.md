@@ -19,7 +19,7 @@
 | 🌐 **FastAPI 服务化** | REST + SSE，自带前端页面，Docker 一键部署 | 脚本 → 生产服务 |
 | 🚦 **并发限流** | Semaphore 控制 web_search QPS，防搜索 API 封禁 | 抗突发流量 |
 | 📊 **结构化日志** | 节点进出 + 耗时 + 结果摘要，可接 ELK/Loki | 可观测性 |
-| ✅ **219 单元测试** | 不联网、不调真实 LLM、不污染生产 db（基础 25 + frontier 79 + GUI 19 + AgentOps 96）| 可回归 |
+| ✅ **331 单元测试** | 不联网、不调真实 LLM、不污染生产 db（基础 25 + frontier 79 + GUI 19 + AgentOps 96 + Ambient 112）| 可回归 |
 
 ---
 
@@ -201,7 +201,7 @@ research-assistant/
 │   ├── main.py                   ← FastAPI app（lifespan + 路由）
 │   └── schemas.py                ← Pydantic 请求/响应模型
 ├── static/index.html             ← 极简聊天前端
-└── tests/                        ← 219 个单元测试（不联网/不调真实 LLM）
+└── tests/                        ← 331 个单元测试（不联网/不调真实 LLM/零真实等待）
 ```
 
 ---
@@ -237,7 +237,7 @@ research-assistant/
 > **AI 研究分析助手**（Python · LangGraph · FastAPI · Docker）
 > - 设计双层 LangGraph 图（并行研究子图 + 审稿父图），3 个 researcher 用 `Send` 并行检索，配合 Semaphore 限流，相比串行约 2-3× 加速
 > - 多模型路由降本（glm-4-flash 并行执行 + glm-4 决策写作，省约 80% 成本）+ reviewer 审稿回路（条件边 + 防死循环）提升报告质量
-> - FastAPI + SSE 双层流式（进度 + token 逐字输出），SqliteSaver 跨重启持久化，219 单元测试，Docker 一键部署
+> - FastAPI + SSE 双层流式（进度 + token 逐字输出），SqliteSaver 跨重启持久化，331 单元测试，Docker 一键部署
 
 ### 面试深聊版（按考点展开）
 
@@ -380,6 +380,56 @@ rag/workflow 课程       frontier + gui-agent 课程        agent-ops 课程
 ### 测试覆盖（更新）
 
 **219 个单元测试**（原 123 + AgentOps 新增 96），所有开关组合下全绿。新增测试覆盖：步数预算(16) / 成本预算(17) / 熔断器(15) / 幂等发布(14) / HITL 审批(8) / 断点续跑(11) / run summary(15)。所有新机制默认关、可降级，纯净跑零税。
+
+---
+
+## 🌙 常驻主动（Ambient v4）
+
+经 [ambient-agent-lessons](../../ambient-agent-lessons/)（常驻主动式 Agent 课程，10 课）升级，research-assistant 从「问了才答的会话式系统」升级为**常驻主动 v4**——自己醒、只研究变化、知道何时开口、死了有人知道。
+
+> 前九门课的 Agent 都是会话式（pull）：人发起、系统应答、跑完即散。本课把范式倒过来（push）：调度器叫醒、变化集决定研究什么、判级配额决定说不说、收件箱异步交付、daemon 守生命周期。**研究图本体零改动**——常驻层全部长在图的外面。
+
+### 八机制常驻架构（每个默认关闭，可独立开关 + 降级）
+
+| 机制 | 课程 | 核心能力 | 开关 |
+|------|------|---------|------|
+| ⏰ **调度触发** | [L01](../../ambient-agent-lessons/01_schedule_trigger/) | 固定班次网格 + missed 可数 + 可注入时钟（测试零等待） | `enable_schedules` |
+| 👀 **变化检测** | [L02](../../ambient-agent-lessons/02_source_watch/) | item 级哈希快照 diff；「没能看到」≠「没有变化」 | `enable_source_watch` |
+| 🔬 **增量研究** | [L03](../../ambient-agent-lessons/03_incremental_research/) | 焦点即子题（跳过拆题）+ 旧结论注入 + ✏️ 修正简报（TaskLedger 首次接入主链路） | `enable_incremental_run` |
+| 🔔 **打扰判级** | [L04](../../ambient-agent-lessons/04_proactivity/) | major/minor/none 判级 + 宁攒勿丢降级 + 每日打扰配额 | `enable_proactivity` |
+| 📥 **收件箱** | [L05](../../ambient-agent-lessons/05_inbox_agency/) | 五通道异步交付 + 隔夜审批（复用 HITL）+ agency 三级阶梯 | `enable_inbox` |
+| ♻️ **常驻守护** | [L06](../../ambient-agent-lessons/06_daemon_lifecycle/) | 单轮失败不倒 + 两层恢复（孤儿续跑/班次 catch-up）+ overlap skip | daemon 入口 |
+| 💰 **时段预算** | [L07](../../ambient-agent-lessons/07_period_budget/) | 第三层钱包（日总量）：pause 挡下一班不打断进行中 | `enable_period_budget` |
+| 💓 **退避与心跳** | [L07](../../ambient-agent-lessons/07_period_budget/) | 无变化指数退避（封顶）+ 心跳缺勤检出 + 一行日报 | `enable_adaptive_scan` / `enable_heartbeat` |
+
+### 收益矩阵（来自 [L08](../../ambient-agent-lessons/08_ambient_eval/)，确定性可复现）
+
+| 配置 | 增量召回 | 立即打扰 | 打扰精确率 | 静默失败 | 5日token(估) | 缺勤检出 |
+|------|---------|---------:|-----------|---------|-------------:|---------|
+| baseline·人肉盯梢 | 0/3 | 5 | 20% | ❌ 有 | 5000 | — |
+| cron·只开调度 | 0/3 | 5 | 20% | ❌ 有 | 5000 | — |
+| full·全开 | 3/3 | 1 | 100% | ✅ 无 | 1070 | ✅ |
+
+> 关键一行：**cron 档与人肉基线六指标全同**——cron 只买到出勤，买不到判断。⚠️ 诚实标注：mock 估算口径，五档间相对结构与真实一致；完整五档矩阵与退避代价见 [`eval_agent/AMBIENT_REPORT.md`](eval_agent/AMBIENT_REPORT.md)。复现：`python eval_agent/run_ambient_eval.py`。
+
+### 版本演进
+
+```
+v1（多智能体）      v2（Deep Research）        v3（生产可靠）           v4（常驻主动）
+搜索→写报告    →    记忆/反思/CodeAct/浏览器 → 预算/熔断/幂等/续跑  →  调度/变化检测/增量/
+rag/workflow        frontier + gui-agent       agent-ops               判级/收件箱/守护/心跳
+                                                                       ambient-agent 课程
+```
+
+kb-qa 走了 RAG→运维→多模态三版，research-assistant 走了多智能体→深研究→生产可靠→常驻主动四版——每一步都有数字。
+
+### 架构文档
+
+详见 [`docs/ambient-agent.md`](docs/ambient-agent.md)——八机制数据流 + 开关矩阵 + 与既有资产的边界表（复用不重写）+ 收益矩阵。
+
+### 测试覆盖（更新）
+
+**331 个单元测试**（原 219 + Ambient 新增 112），所有开关组合下全绿。新增测试覆盖：调度器(13) / watcher(13) / 增量回路(14) / 打扰判级(15) / 收件箱(15) / daemon(17) / 时段预算(17) / 收益矩阵(8)。全部离线、零真实等待（可注入时钟）、八开关默认关，纯净跑零税。
 
 ---
 
