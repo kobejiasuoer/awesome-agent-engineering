@@ -238,6 +238,18 @@ class Settings(BaseSettings):
     # 默认关：split/researcher/service 行为与现状完全一致（全量研究）。
     enable_incremental_run: bool = False
 
+    # ── 打扰决策（Ambient L04 · 值得说吗、现在说吗）──────────────
+    # 常驻 Agent 的价值观核心：每班的产出先判级（major/minor/none，LLM judge
+    # + 解析失败降级 minor 宁攒勿丢），再按政策+配额决定 notify/digest/silent。
+    # 与 agent-ops L07 告警的边界：那边是系统健康（我跑得不健康），
+    # 这边是内容价值（世界的变化值不值得你抬头）。
+    # 默认关：daemon 不做判级（产出全部落 digest，行为最保守）。
+    enable_proactivity: bool = False
+    # 政策：threshold（判级+配额）/ all（全推，基线对照）/ digest_only（绝不打扰）
+    proactivity_policy: str = "threshold"
+    # 每日立即打扰配额（notify_now 次数上限；尽了 major 也降 digest 并记档）
+    daily_interrupt_quota: int = 2
+
 
 @lru_cache
 def get_settings() -> Settings:
