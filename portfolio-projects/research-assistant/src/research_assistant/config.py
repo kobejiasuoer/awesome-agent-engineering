@@ -259,6 +259,15 @@ class Settings(BaseSettings):
     #   notify=只报告不代办 / propose=拟稿等人确认 / act=先斩后奏（幂等+留痕）
     agency_level: str = "notify"
 
+    # ── 常驻守护进程（Ambient L06 · 把 L01-L05 串成服务）────────
+    # AmbientDaemon 主循环：tick 到班 → overlap 检查 → 扫描→研究→判级→投递。
+    # 三条常驻纪律：单轮失败不倒 daemon / 孤儿恢复复用 resume_job /
+    # 时间全注入（FakeClock 下测试秒级跑 5 天）。
+    # 默认关：不启动任何常驻进程（模块只在显式运行 daemon 入口时工作）。
+    enable_ambient_daemon: bool = False
+    # 主循环轮询间隔（秒）——真实时钟下的 tick 节奏
+    daemon_poll_seconds: float = 30.0
+
 
 @lru_cache
 def get_settings() -> Settings:

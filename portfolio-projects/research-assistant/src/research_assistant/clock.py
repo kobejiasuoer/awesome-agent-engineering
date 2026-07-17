@@ -15,6 +15,7 @@
 """
 from __future__ import annotations
 
+import asyncio
 import time
 
 # 一「天」的秒数（模拟时间线/时段预算共用）
@@ -30,9 +31,13 @@ class Clock:
     def sleep(self, seconds: float) -> None:
         time.sleep(max(0.0, seconds))
 
+    async def asleep(self, seconds: float) -> None:
+        """异步等待（daemon 主循环用——不阻塞事件循环）。"""
+        await asyncio.sleep(max(0.0, seconds))
+
 
 class FakeClock(Clock):
-    """假时钟：now() 返回内部值，sleep() 不等待而是快进。
+    """假时钟：now() 返回内部值，sleep()/asleep() 不等待而是快进。
 
     start 默认取一个固定值（而非 time.time()）——保证测试/演示**确定性**：
     同样的脚本每次跑出同样的「日期」，档案可复现、可对照。
@@ -46,6 +51,10 @@ class FakeClock(Clock):
 
     def sleep(self, seconds: float) -> None:
         # sleep = 快进（这是 FakeClock 的灵魂：等待变成拨表）
+        self._now += max(0.0, float(seconds))
+
+    async def asleep(self, seconds: float) -> None:
+        # 异步版同样快进——daemon 主循环在测试里秒级跑完「几天」
         self._now += max(0.0, float(seconds))
 
     def advance(self, seconds: float) -> None:
