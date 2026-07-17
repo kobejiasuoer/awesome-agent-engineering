@@ -222,6 +222,14 @@ class Settings(BaseSettings):
     # 注册盯梢调度时的缺省扫描间隔（小时）
     default_scan_interval_hours: float = 24.0
 
+    # ── 信源与变化检测（Ambient L02 · 世界变了什么）──────────────
+    # 常驻 Agent 醒来先做机械层变化检测（item 级内容哈希 + 快照 diff），
+    # 五毛钱回答「有没有新东西」——没有就不花研究的钱。
+    # 两条纪律：①「没有变化」是一等公民结果（空变化集→不进研究图）；
+    # ②「没能看到」≠「没有变化」（fetch 失败→ok=False，快照不动，绝不冒充没变）。
+    # 默认关：daemon（L06）不接 watcher；模块本身随时可独立调用。
+    enable_source_watch: bool = False
+
 
 @lru_cache
 def get_settings() -> Settings:
