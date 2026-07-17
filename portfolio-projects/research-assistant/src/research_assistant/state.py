@@ -42,6 +42,11 @@ class ResearchState(TypedDict):
     # ⭐ reducer 合并并行结果（L04 map-reduce 关键）
     findings: Annotated[list[str], operator.add]
     research_summary: str
+    # Ambient L03：增量研究焦点（watcher 变化集生成的子题；
+    # enable_incremental_run 且非空时 split 直接采用，跳过 LLM 拆题）
+    incremental_focus: list[str]
+    # Ambient L03：旧结论上下文（ledger 已确认结论，researcher 注入「只补新的」）
+    prior_context: str
 
 
 # ════════════════════════════════════════════════════════════
@@ -90,3 +95,6 @@ class SystemState(TypedDict):
     failed_subtopics: Annotated[list[str], operator.add]
     # AgentOps L04：副作用发布结果（幂等键去重后的发布记录）
     publish_result: dict
+    # Ambient L03：增量研究焦点 + 旧结论上下文（经 research_team 流入子图）
+    incremental_focus: list[str]
+    prior_context: str

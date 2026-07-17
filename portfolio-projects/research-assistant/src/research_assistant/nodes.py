@@ -96,6 +96,14 @@ def make_split(fast_llm):
         topic = state["topic"]
         from .config import settings  # 延迟 import 避免循环
         n = settings.num_subtopics
+
+        # Ambient L03：增量模式下焦点即子题——变化集已经指认了「要研究什么」，
+        # 跳过 LLM 拆题（省一次调用，且不会把研究面重新扩回全量）。
+        # 开关关 / 无焦点时走原路径，行为与现状完全一致。
+        focus = state.get("incremental_focus") or []
+        if settings.enable_incremental_run and focus:
+            return {"subtopics": [f.strip() for f in focus if f.strip()][:8]}
+
         resp = fast_llm.invoke(
             f"你是研究规划师。把「{topic}」拆成 {n} 个具体、可独立检索的研究子问题，"
             f"每行一个，只要问题本身，不要编号。"
@@ -116,9 +124,13 @@ def route_to_researchers(state: ResearchState) -> list:
     """条件边：返回 Send 列表触发并行 fan-out（L04 核心 API）。
 
     每个子问题 → 一个 Send(researcher, {subtopic})，LangGraph 并行执行。
+    Ambient L03：prior_context 随 Send 载荷下发（researcher 是 Send 驱动，
+    看不到子图全量 State，旧结论必须装进载荷）。
     """
     from langgraph.types import Send
-    return [Send("researcher", {"subtopic": s}) for s in state["subtopics"]]
+    prior = state.get("prior_context", "")
+    return [Send("researcher", {"subtopic": s, "prior_context": prior})
+            for s in state["subtopics"]]
 
 
 def make_researcher(fast_llm):
@@ -213,9 +225,18 @@ def make_researcher(fast_llm):
             # 有真实素材：让 LLM 基于搜索结果综合（更准确、可溯源）
             # 有记忆命中时，提示 Agent「在旧记忆基础上深化而非重复」
             memory_instr = f"\n\n{memory_hint}\n请在上述记忆基础上深化，不要简单重复旧结论。" if memory_hint else ""
+            # Ambient L03：旧结论注入（增量模式）——已知的不重复研究，只补新的；
+            # 若新信息与旧结论矛盾，要求显式指出（喂给 ledger 简报的 ✏️ 修正通道）
+            prior = state.get("prior_context", "")
+            prior_instr = ""
+            if settings.enable_incremental_run and prior:
+                prior_instr = (
+                    f"\n\n已确认的历史结论（不要重复研究）：\n{prior}\n"
+                    f"只提炼新信息；若新信息与上述结论矛盾，用「更正：」开头明确指出。"
+                )
             resp = fast_llm.invoke(
                 f"你是研究员。针对子问题「{subtopic}」，基于以下搜索资料，"
-                f"提炼 2-3 句核心发现（不要照抄，要提炼）：\n\n{search_raw}{memory_instr}"
+                f"提炼 2-3 句核心发现（不要照抄，要提炼）：\n\n{search_raw}{memory_instr}{prior_instr}"
             )
             _record_call("researcher", resp)  # AgentOps L02
             finding = f"【{subtopic}】\n  发现：{resp.content.strip()}\n  来源：{source_tag}"
@@ -280,11 +301,14 @@ def make_research_team(research_subgraph):
             }
 
         # 正常研究：调用并行子图（fresh state，子图无 messages）—— 异步
+        # Ambient L03：增量焦点 + 旧结论上下文随入参流入子图（默认空 = 现状行为）
         sub_result = await research_subgraph.ainvoke({
             "topic": topic,
             "subtopics": [],
             "findings": [],
             "research_summary": "",
+            "incremental_focus": state.get("incremental_focus", []),
+            "prior_context": state.get("prior_context", ""),
         })
 
         # 子图结果回流父图（共享字段 findings + research_summary）

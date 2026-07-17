@@ -86,13 +86,19 @@ def _initial_state(topic: str) -> dict:
         "failed_subtopics": [],
         # AgentOps L04：副作用发布结果
         "publish_result": {},
+        # Ambient L03：增量研究焦点 + 旧结论上下文（默认空 = 现状全量行为）
+        "incremental_focus": [],
+        "prior_context": "",
     }
 
 
-async def invoke(topic: str, thread_id: str) -> dict:
+async def invoke(topic: str, thread_id: str, extra_state: dict | None = None) -> dict:
     """跑一次完整研究，返回最终 state（含 report/findings/review）。
 
     供不需要流式的场景用（如内部调用、测试）。
+
+    Ambient L03：extra_state 允许调用方注入增量焦点/旧结论上下文
+    （run_incremental 用；不传 = 现状全量行为，一字不差）。
 
     Frontier L02：研究结束后若 enable_memory，异步触发 reflect_and_store，
     把本次发现提炼成记忆条目存入 MemoryStore（第二次研究才能 recall 到）。
@@ -117,7 +123,10 @@ async def invoke(topic: str, thread_id: str) -> dict:
         system = build_system(smart_llm, fast_llm, sub, checkpointer=saver)
         config = {"configurable": {"thread_id": thread_id}}
         t0 = time.time()
-        result = await system.ainvoke(_initial_state(topic), config=config)
+        initial = _initial_state(topic)
+        if extra_state:
+            initial = {**initial, **extra_state}  # 不可变合并（Ambient L03）
+        result = await system.ainvoke(initial, config=config)
         serialized = _serialize_state(result)
 
         # AgentOps L07：输出 run summary 体检报告（enable_run_summary 时）

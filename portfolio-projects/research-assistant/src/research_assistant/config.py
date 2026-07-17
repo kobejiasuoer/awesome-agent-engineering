@@ -230,6 +230,14 @@ class Settings(BaseSettings):
     # 默认关：daemon（L06）不接 watcher；模块本身随时可独立调用。
     enable_source_watch: bool = False
 
+    # ── 增量研究回路（Ambient L03 · 只研究变化，不重研全量）──────
+    # watcher 变化集 → 焦点子题直进研究图（split 跳过 LLM 拆题）；
+    # 旧结论（TaskLedger 已确认项）注入 researcher prompt「只补新的」；
+    # 产出走 ledger 增量简报（🆕新增/✏️修正/➡️不变）——frontier-L10 账本
+    # 首次接入运行时主链路（此前只有模块与测试，无调用方）。
+    # 默认关：split/researcher/service 行为与现状完全一致（全量研究）。
+    enable_incremental_run: bool = False
+
 
 @lru_cache
 def get_settings() -> Settings:
