@@ -213,6 +213,15 @@ class Settings(BaseSettings):
     alert_budget_ratio_high: float = 0.9
     alert_degraded_high: int = 2
 
+    # ── 触发与调度（Ambient L01 · 谁来叫醒 Agent）────────────────
+    # 会话式的一切开始于人发消息——人忘了问，Agent 就永远沉默。
+    # 本开关启用调度器：sqlite 调度表 + 可注入时钟（clock.py），到点触发
+    # 盯梢任务（登记进 jobs 注册表，由常驻 daemon（L06）认领执行）。
+    # 默认关：不影响现有会话式入口；测试用 FakeClock 快进，零真实等待。
+    enable_schedules: bool = False
+    # 注册盯梢调度时的缺省扫描间隔（小时）
+    default_scan_interval_hours: float = 24.0
+
 
 @lru_cache
 def get_settings() -> Settings:
