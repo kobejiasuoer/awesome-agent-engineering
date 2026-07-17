@@ -268,6 +268,22 @@ class Settings(BaseSettings):
     # 主循环轮询间隔（秒）——真实时钟下的 tick 节奏
     daemon_poll_seconds: float = 30.0
 
+    # ── 时段预算与常驻可观测（Ambient L07 · 睡觉时的钱和心跳）────
+    # 三层预算的第三层：请求级限流（ops-L04）→ 轨迹级钱包（agent-ops L02）
+    # → 时段级钱包（本课：一天 N 次自主运行的总预算）。
+    # 软线 degrade 提醒省着花，硬线 pause 挡住下一班（不打断进行中的）。
+    enable_period_budget: bool = False
+    period_budget_tokens: int = 200_000
+    period_soft_ratio: float = 0.8
+    # 自适应扫描：连续无变化 → 间隔 ×2^streak（封顶）；有变化回基础网格。
+    # source_failed 不动 streak（「没能看到」既不该退避也不该回冲）。
+    enable_adaptive_scan: bool = False
+    adaptive_backoff_cap: int = 8
+    # 心跳与缺勤：daemon 每 tick 记心跳；启动时 gap 超阈值 = 缺勤告警。
+    # 「沉默的日子也要有心跳」——安静和死了必须可区分。
+    enable_heartbeat: bool = False
+    absence_alert_hours: float = 6.0
+
 
 @lru_cache
 def get_settings() -> Settings:

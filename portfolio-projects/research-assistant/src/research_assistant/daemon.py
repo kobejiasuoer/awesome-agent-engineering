@@ -106,12 +106,34 @@ class AmbientDaemon:
                   "recovered": recovered, "recover_failed": failed}
         if orphans:
             log.info(f"启动体检：{len(orphans)} 个孤儿，恢复 {len(recovered)}，失败 {len(failed)}")
+
+        # Ambient L07：缺勤检测——上次心跳距今超阈值 = 缺勤期的世界没人看
+        if settings.enable_heartbeat:
+            from .period_budget import check_absence
+            absence = check_absence(clock=self._clock)
+            report["absence"] = absence
+            if absence["absent"] and settings.enable_inbox:
+                from .inbox import KIND_ALERT, add_entry
+                add_entry(KIND_ALERT, "daemon", "缺勤检测：daemon 曾长时间离线",
+                          absence["note"], clock=self._clock)
+                log.warning(f"缺勤告警：{absence['note']}")
         return report
 
     # ── 一轮 ambient cycle ───────────────────────────────────
     async def run_cycle(self, topic: str, thread_id: str | None = None) -> dict:
         """一轮完整生命周期：扫描→研究→判级→投递→代办（各环节按开关降级）。"""
         thread_id = thread_id or f"ambient-{uuid.uuid4().hex[:8]}"
+
+        # Ambient L07：时段预算门——pause 挡住下一班（不打断进行中的班次）
+        if settings.enable_period_budget:
+            from .period_budget import STATE_PAUSE, check_budget
+            budget = check_budget(clock=self._clock)
+            if budget["state"] == STATE_PAUSE:
+                log.warning(f"时段预算已烧尽（{budget['used']}/{budget['limit']}），"
+                            f"本班暂停：{topic}")
+                return {"topic": topic, "thread_id": thread_id,
+                        "status": "budget_paused", "budget": budget}
+
         job = jobs.submit_job(topic, thread_id)
         jobs.update_status(job["task_id"], jobs.STATUS_RUNNING)
         try:
@@ -150,6 +172,13 @@ class AmbientDaemon:
 
             jobs.update_status(job["task_id"], jobs.STATUS_DONE,
                                result={"status": status})
+
+            # Ambient L07：本班花费记入时段总账（取轨迹钱包的 token_usage）
+            if settings.enable_period_budget:
+                from .period_budget import add_usage
+                tokens = (result.get("result") or {}).get("token_usage", 0)
+                add_usage(int(tokens or 0), clock=self._clock)
+
             return {"topic": topic, "thread_id": thread_id,
                     "status": status, "decision": decision}
         except Exception as e:
@@ -228,8 +257,22 @@ class AmbientDaemon:
             if f["missed"]:
                 # 固定网格的天然 catch-up：错过 N 班 → 本班补跑一次，缺勤记档
                 report["caught_up_missed"] += f["missed"]
-            report["ran"].append(await self.run_cycle(topic))
+            out = await self.run_cycle(topic)
+            report["ran"].append(out)
+
+            # Ambient L07：自适应扫描——把「这班有没有变化」反馈给调度表。
+            # source_failed / budget_paused 不动 streak（没看到 ≠ 世界安静）。
+            if settings.enable_adaptive_scan and out["status"] in ("researched", "no_change"):
+                from .period_budget import note_scan_result
+                note_scan_result(f["schedule_id"], out["status"] == "researched",
+                                 clock=self._clock)
         self.tick_count += 1
+
+        # Ambient L07：心跳——每 tick 一笔「我还活着」
+        if settings.enable_heartbeat:
+            from .period_budget import beat
+            beat(clock=self._clock)
+
         if self._on_tick is not None:
             try:
                 self._on_tick()
