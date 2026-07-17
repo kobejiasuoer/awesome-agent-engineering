@@ -250,6 +250,15 @@ class Settings(BaseSettings):
     # 每日立即打扰配额（notify_now 次数上限；尽了 major 也降 digest 并记档）
     daily_interrupt_quota: int = 2
 
+    # ── 收件箱与自主级别（Ambient L05 · 不打断的交付面）──────────
+    # 常驻产出的异步交付面：notify/digest/proposal/approval/alert 五类条目。
+    # 隔夜审批复用 agent-ops L05 HITL（interrupt 状态在 checkpoint 里等人）。
+    # 默认关：daemon 不投递收件箱（模块本身随时可独立调用）。
+    enable_inbox: bool = False
+    # 自主级别阶梯（「自主-控制」总旋钮）：
+    #   notify=只报告不代办 / propose=拟稿等人确认 / act=先斩后奏（幂等+留痕）
+    agency_level: str = "notify"
+
 
 @lru_cache
 def get_settings() -> Settings:
