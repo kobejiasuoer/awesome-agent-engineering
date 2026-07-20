@@ -347,6 +347,16 @@ class Settings(BaseSettings):
     # 工作区根目录（相对运行目录；测试用 tmp_path 注入）
     workspace_dir: str = "workspace"
 
+    # ── 运行中改道与权限门（Harness L07 · 长途驾驶舱）─────────────
+    # 改道：steering 队列（sqlite）+ 安全点协商合并进 plan.md（留痕）+
+    # cancel 软停出诚实半程报告；不是抢占是合并。权限门：写出工作区/
+    # 网络写操作/花费超阈 → needs_approval 拦下留痕（审批流复用
+    # agent-ops L05 + ambient inbox，只引用）。默认关：零差异。
+    enable_steering: bool = False
+    enable_tool_gate: bool = False
+    # 权限门的花费保险丝（预估 token 超过即需审批）
+    tool_gate_cost_threshold: int = 10000
+
 
 @lru_cache
 def get_settings() -> Settings:

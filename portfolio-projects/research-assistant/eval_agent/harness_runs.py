@@ -316,3 +316,117 @@ def run_workspace_longhaul(*, workspace_base, run_id: str = "longhaul-demo",
         "tokens_billed": tokens_billed,
         "workspace_tree": ws_final.tree().splitlines()[:8],
     }
+
+
+def run_steered_longhaul(*, workspace_base, run_id: str = "steered-demo",
+                         steer_after: int | None = 10,
+                         instruction: str | None = None,
+                         cancel_after: int | None = None,
+                         sub_window_tokens: int = 4000,
+                         tokenizer: FakeTokenizer | None = None) -> dict:
+    """长程主窗 + 工作区 + 改道驾驶舱：L07 的主角跑法。
+
+    steer_after=k：第 k 源完成后投递改道指令（默认长途任务的 STEERING_
+    INSTRUCTION：优先 safety、跳过 marketing）；安全点合并进 plan.md，
+    recitation（L06）让新计划即刻生效——后续源序可见改变，marketing 源
+    被跳过并三态标注（done / skipped_by_instruction / failed 可区分）。
+    cancel_after=k：第 k 源完成后投递软停——完成当前源即止，产出诚实
+    半程声明。指令→计划→行为的「合并」为剧本代演（判断交给模型），
+    队列/安全点/留痕/三态是本课交付的纪律。
+    """
+    from eval_agent.long_haul import STEERING_INSTRUCTION
+    from research_assistant import steering
+    from research_assistant.workspace import Workspace
+
+    tk = tokenizer or FakeTokenizer()
+    src = LongHaulSource()
+    instr_text = instruction or STEERING_INSTRUCTION
+
+    def worker(subject, payload, ledger):
+        ledger.measure("sub-study", system=_WORKER_INSTR, tool_results=payload)
+        facts = [f.statement for f in KEY_FACTS
+                 if f.doc_id == subject and f.probe in payload]
+        parts = [f"[{subject}]《{src.doc(subject).title}》"]
+        parts += [f"事实：{s}" for s in facts] or ["要点：无可核查关键事实（背景性内容）"]
+        return "；".join(parts), (subject,)
+
+    runner = SubagentRunner(worker, window_tokens=sub_window_tokens, tokenizer=tk)
+    ws = Workspace(run_id, workspace_base)
+    plan = (f"目标：{TOPIC}——30 源全研、提取关键事实、指出跨源矛盾。")
+    ws.write_plan(plan)
+    main_ledger = WindowLedger(tokenizer=tk, limit=WINDOW_LIMIT_TOKENS)
+
+    queue: list[str] = list(DOC_IDS)
+    done: list[str] = []
+    skipped: list[str] = []
+    steer_applied_at: int | None = None
+    cancelled_at: int | None = None
+    order_after_steer: list[str] = []
+    prioritized = False
+
+    step = 0
+    while queue:
+        # ── 安全点（源与源之间）：拉取指令、协商合并、检测软停 ──
+        at_note = f"第 {step} 源完成后"
+        new_plan, applied, cancel = steering.poll_safepoint(ws.read_plan(), at_note)
+        if applied:
+            ws.write_plan(new_plan)            # 改道落 plan.md——recitation 即刻生效
+        if any(a["kind"] == steering.KIND_STEER for a in applied):
+            steer_applied_at = step
+            prioritized = True
+            # 剧本代演「指令→计划变更」：safety 提前、marketing 标记跳过
+            safety = [d for d in queue if src.doc(d).category == "safety"]
+            marketing = [d for d in queue if src.doc(d).category == "marketing"]
+            rest = [d for d in queue if d not in safety and d not in marketing]
+            skipped.extend(marketing)
+            queue = safety + rest
+            order_after_steer = list(queue)
+        if cancel:
+            cancelled_at = step
+            break
+
+        doc_id = queue.pop(0)
+        full = src.fetch(doc_id)
+        ws.save_source(doc_id, full)
+        result = runner.run(doc_id, full)
+        ws.add_note(doc_id, result.brief())
+        done.append(doc_id)
+        step += 1
+        conclusions = [ws.read(f"notes/{n}.md") for n in ws.note_names()]
+        main_ledger.measure("main-step", system=SYSTEM_PROMPT,
+                            task_state=src.catalog_text() + _STUDY_INSTR
+                            + ws.recitation_block(),
+                            history="\n".join(conclusions))
+        # 剧本时点：第 steer_after / cancel_after 源完成后投递指令
+        if steer_after is not None and step == steer_after:
+            steering.submit_instruction(instr_text)
+        if cancel_after is not None and step == cancel_after:
+            steering.submit_instruction("请尽快收尾，出目前所得。",
+                                        kind=steering.KIND_CANCEL)
+
+    conclusions = [ws.read(f"notes/{n}.md") for n in ws.note_names()]
+    syn_text = SYSTEM_PROMPT + ws.recitation_block() + "\n".join(conclusions)
+    hits, _ = presence(syn_text)
+    honest_stop = (f"⚠️ 应用户软停指令，于第 {cancelled_at} 源后收尾：已研 "
+                   f"{len(done)}/{N_SOURCES}，以下为基于已有材料的部分结果。"
+                   if cancelled_at is not None else "")
+    if skipped:
+        honest_stop += (f"（另有 {len(skipped)} 源应改道指令跳过：{','.join(skipped)}"
+                        f"——跳过是执行指令，不是失败。）")
+
+    return {
+        "mode": f"steered(steer@{steer_after},cancel@{cancel_after})",
+        "completed_sources": len(done),
+        "skipped_by_instruction": skipped,
+        "steer_applied_at": steer_applied_at,
+        "order_after_steer": order_after_steer[:6],
+        "cancelled_at": cancelled_at,
+        "honest_stop_note": honest_stop,
+        "presence_hits": hits,
+        "presence": f"{hits}/{len(KEY_FACTS)}",
+        "contradiction_discoverable": contradiction_discoverable(syn_text),
+        "plan_final": ws.read_plan(),
+        "steering_history": steering.history(),
+        "main_peak_tokens": main_ledger.peak(),
+        "total_fetches": src.total_fetches,
+    }
