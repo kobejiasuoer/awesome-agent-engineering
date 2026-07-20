@@ -1,0 +1,217 @@
+{
+  "task": {
+    "topic": "Agent 运行时与框架生态深度调研",
+    "n_sources": 30,
+    "window_limit_tokens": 8000,
+    "tokenizer": "FakeTokenizer len//4（与 cost_budget 估算口径一致）",
+    "key_facts": 20,
+    "contradiction_pair": [
+      "F06",
+      "F16"
+    ],
+    "session_split": 15,
+    "steering_at": 10,
+    "pref_hooks": [
+      "报告必须用中文撰写",
+      "报告正文控制在 500 字以内"
+    ]
+  },
+  "baselines": {
+    "A0_pipeline": {
+      "mode": "pipeline_reference",
+      "completed_sources": 30,
+      "died_at": null,
+      "peak_window_tokens": 4565,
+      "synthesis_window_tokens": 4565,
+      "presence": "8/20（机制演示：无契约压缩，规则=只留每篇前 600 字）",
+      "presence_hits": 8,
+      "missing_facts": [
+        "F02",
+        "F04",
+        "F05",
+        "F07",
+        "F09",
+        "F10",
+        "F12",
+        "F13",
+        "F15",
+        "F16",
+        "F18",
+        "F19"
+      ],
+      "contradiction_discoverable": false,
+      "contradiction_note": "无保障——取决于矛盾两端各自在有损压缩中的存活运气",
+      "silent_omission": true,
+      "tokens_billed": 27486,
+      "total_fetches": 30,
+      "over_limit": false,
+      "cross_session": "不支持（State 不跨会话，PREF_HOOKS 偏好丢失）",
+      "window_curve_tail": []
+    },
+    "A1_measure": {
+      "mode": "measure",
+      "completed_sources": 30,
+      "died_at": null,
+      "first_overflow_source": 11,
+      "peak_window_tokens": 23383,
+      "synthesis_window_tokens": 23383,
+      "presence": "20/20",
+      "presence_hits": 20,
+      "missing_facts": [],
+      "contradiction_discoverable": true,
+      "silent_omission": false,
+      "tokens_billed": 378889,
+      "total_fetches": 30,
+      "composition_at_overflow": {
+        "system": 78,
+        "task_state": 240,
+        "tool_results": 7901,
+        "history": 72
+      },
+      "cross_session": "不支持（会话断=窗口清零，PREF_HOOKS 偏好丢失）",
+      "notes": [
+        "assistant 轮取小恒量（真实更长）——对裸基线有利的保守估计",
+        "token 计费为每轮重付全窗（无 KV 缓存减免）——绝对数字保守，结构结论一致"
+      ],
+      "window_curve_tail": [
+        {
+          "source": 28,
+          "window": 22391,
+          "over_limit": true
+        },
+        {
+          "source": 29,
+          "window": 22798,
+          "over_limit": true
+        },
+        {
+          "source": 30,
+          "window": 23344,
+          "over_limit": true
+        }
+      ]
+    },
+    "A2_enforce": {
+      "mode": "enforce",
+      "completed_sources": 10,
+      "died_at": 11,
+      "first_overflow_source": 11,
+      "peak_window_tokens": 8291,
+      "synthesis_window_tokens": 0,
+      "presence": "0/20",
+      "presence_hits": 0,
+      "missing_facts": [
+        "F01",
+        "F02",
+        "F03",
+        "F04",
+        "F05",
+        "F06",
+        "F07",
+        "F08",
+        "F09",
+        "F10",
+        "F11",
+        "F12",
+        "F13",
+        "F14",
+        "F15",
+        "F16",
+        "F17",
+        "F18",
+        "F19",
+        "F20"
+      ],
+      "contradiction_discoverable": false,
+      "silent_omission": false,
+      "tokens_billed": 44203,
+      "total_fetches": 11,
+      "composition_at_overflow": {
+        "system": 78,
+        "task_state": 240,
+        "tool_results": 7901,
+        "history": 72
+      },
+      "cross_session": "不支持（会话断=窗口清零，PREF_HOOKS 偏好丢失）",
+      "notes": [
+        "assistant 轮取小恒量（真实更长）——对裸基线有利的保守估计",
+        "token 计费为每轮重付全窗（无 KV 缓存减免）——绝对数字保守，结构结论一致"
+      ],
+      "window_curve_tail": [
+        {
+          "source": 9,
+          "window": 7088,
+          "over_limit": false
+        },
+        {
+          "source": 10,
+          "window": 7720,
+          "over_limit": false
+        },
+        {
+          "source": 11,
+          "window": 8291,
+          "over_limit": true
+        }
+      ]
+    },
+    "A3_hard_truncate": {
+      "mode": "hard_truncate",
+      "completed_sources": 30,
+      "died_at": null,
+      "first_overflow_source": null,
+      "peak_window_tokens": 4292,
+      "synthesis_window_tokens": 4292,
+      "presence": "8/20",
+      "presence_hits": 8,
+      "missing_facts": [
+        "F02",
+        "F04",
+        "F05",
+        "F07",
+        "F09",
+        "F10",
+        "F12",
+        "F13",
+        "F15",
+        "F16",
+        "F18",
+        "F19"
+      ],
+      "contradiction_discoverable": false,
+      "silent_omission": true,
+      "tokens_billed": 74981,
+      "total_fetches": 30,
+      "composition_at_overflow": null,
+      "cross_session": "不支持（会话断=窗口清零，PREF_HOOKS 偏好丢失）",
+      "notes": [
+        "assistant 轮取小恒量（真实更长）——对裸基线有利的保守估计",
+        "token 计费为每轮重付全窗（无 KV 缓存减免）——绝对数字保守，结构结论一致"
+      ],
+      "window_curve_tail": [
+        {
+          "source": 28,
+          "window": 4001,
+          "over_limit": false
+        },
+        {
+          "source": 29,
+          "window": 4132,
+          "over_limit": false
+        },
+        {
+          "source": 30,
+          "window": 4263,
+          "over_limit": false
+        }
+      ]
+    }
+  },
+  "structural_conclusions": [
+    "长程单窗裸奔死于 S11——窗口是物理约束，与模型聪明程度无关",
+    "硬截断买到「活着」买不到「记得」：在场率 8/20，矛盾断一臂，且静默无标记",
+    "v4 流水线绕墙走：便宜但无契约——事实存活靠运气，跨源矛盾无保障",
+    "工具结果占越限窗口 95%：先控源（L04）再止损（L02），账本（L01）先行",
+    "跨会话与改道全不支持：偏好丢失（L03）、只能杀掉重跑（L07）"
+  ]
+}
