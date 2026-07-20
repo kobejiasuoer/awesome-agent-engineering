@@ -307,6 +307,16 @@ class Settings(BaseSettings):
     # 压缩目标：压到该水位以下（给后续增长留余量）
     compact_target_pct: float = 0.50
 
+    # ── 跨会话记忆文件（Harness L03 · 操作记忆）──────────────────
+    # 三种记忆各管一段：任务经验（memory.py 向量召回）/ 任务进度（ledger）/
+    # 操作记忆（本模块：用户偏好、长期约束——单事实单文件 + MEMORY.md 索引，
+    # 索引常驻正文按���）。写入纪律 gate：临时参数拒收、已记录拒收、可反悔。
+    # 启用后 writer 按 trigger 命中召回注入（背景不是指令，过时以当前对话为准）。
+    # 默认关：不召回不注入，行为零差异。
+    enable_memory_files: bool = False
+    # 记忆文件目录（相对运行目录；测试用 tmp_path 注入）
+    memory_files_dir: str = "memory_files"
+
 
 @lru_cache
 def get_settings() -> Settings:

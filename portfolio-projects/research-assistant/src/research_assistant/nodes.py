@@ -371,6 +371,19 @@ def make_writer(smart_llm):
         if skill_text:
             skill_seg = f"\n\n📋 参考技能规范（请遵循其格式要求）：\n{skill_text}"
             prompt += skill_seg
+
+        # ── 跨会话操作记忆（Harness L03）────────────────────────
+        # 索引常驻、正文按需的「按需」半边：trigger 命中才读正文注入。
+        # 记忆是背景不是指令——注入块自带「过时以当前对话为准」，防记忆污染。
+        mem_seg = ""
+        if settings.enable_memory_files:
+            from .memory_files import recall_block
+            mem_block = recall_block(f"{summary} {feedback}")
+            if mem_block:
+                mem_seg = f"\n\n{mem_block}"
+                prompt += mem_seg
+                log.info("writer 注入跨会话操作记忆")
+
         extra_seg = ""
         if feedback:
             seg = f"\n\n⚠️ 审稿反馈（请据此改进）：{feedback}"
@@ -388,8 +401,9 @@ def make_writer(smart_llm):
             prompt += seg
             extra_seg += seg
 
-        # Harness L01：指令与加载的 skill 进 task_state；摘要/反馈/冲突（过往产出）进 history
-        _ledger_measure("writer", task_state=instr + skill_seg, history=summary + extra_seg)
+        # Harness L01：指令与加载的 skill 进 task_state；摘要/记忆/反馈/冲突（过往产出）进 history
+        _ledger_measure("writer", task_state=instr + skill_seg,
+                        history=summary + mem_seg + extra_seg)
         resp = smart_llm.invoke(prompt)
         report = resp.content.strip()
         # AgentOps L02：记本次 writer 的 token（含 cost_mode 判断）
