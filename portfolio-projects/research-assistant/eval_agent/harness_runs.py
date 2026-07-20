@@ -142,7 +142,7 @@ def run_isolated_longhaul(*, sub_window_tokens: int | None = None,
         - shape_in_sub=True 时先过 L04 整形再研读（机制组合：截断保住完赛，
           代价是深埋事实随被截部分丢失——诚实呈现）
         - 结论 schema：标题 + 文中在场的关键事实原句（probe 命中即收录）
-    主窗口只涨结论/失败注记——全程无压缩也稳在低位���
+    主窗口只涨结论/失败注记——全程无压缩也稳在低位。
     """
     tk = tokenizer or FakeTokenizer()
     sub_limit = sub_window_tokens if sub_window_tokens is not None else 4000
@@ -429,4 +429,145 @@ def run_steered_longhaul(*, workspace_base, run_id: str = "steered-demo",
         "steering_history": steering.history(),
         "main_peak_tokens": main_ledger.peak(),
         "total_fetches": src.total_fetches,
+    }
+
+
+_CORE_SYSTEM = ("你是深度研究员。红线：不得编造未在信源中出现的数字；"
+                "省略必须显式；矛盾必须显式指出；引用带信源编号。")
+
+
+def run_full_longhaul(*, workspace_base, memory_base, run_id: str = "v5-full",
+                      steer_after: int = 10,
+                      sub_window_tokens: int = 4000,
+                      tokenizer: FakeTokenizer | None = None) -> dict:
+    """v5 全套合体：八机制协同跑完长途任务（L09 收官跑法，收益矩阵 E 档）。
+
+    机制清单：账本(L01)主窗全程测量 / 整形(L04)子窗内待命 / 子代理(L05)
+    过程隔离 / 工作区(L06)落盘+复述+进度事实源 / 压缩(L02)兜底待命（外置
+    让主窗低到全程未触发——「能外置的别压缩」的终局形态）/ 记忆(L03)跨会话
+    偏好 / 改道(L07)安全点合并 / 三层 system(L08)索引常驻正文按需。
+
+    两条剧本线：
+        跨会话线  前 15 源=会话 1（用户中途给出偏好→写入记忆文件）；
+                  会话 2 只带记忆文件与工作区（attach）继续并合成——
+                  合成窗口里偏好必须在场（PREF_HOOKS 探针机械可测）
+        改道线    第 steer_after 源后投递「优先 safety、跳过 marketing」
+    """
+    from eval_agent.long_haul import PREF_HOOKS, STEERING_INSTRUCTION
+    from research_assistant import memory_files as mf
+    from research_assistant import steering
+    from research_assistant.skill_loader import SkillLoader, build_layered_system
+    from research_assistant.workspace import Workspace
+
+    tk = tokenizer or FakeTokenizer()
+    src = LongHaulSource()
+    loader = SkillLoader()
+
+    def worker(subject, payload, ledger):
+        shaped = shape_result(payload, max_tokens=max(50, sub_window_tokens - 200),
+                              tokenizer=tk)
+        ledger.measure("sub-study", system=_WORKER_INSTR, tool_results=shaped)
+        facts = [f.statement for f in KEY_FACTS
+                 if f.doc_id == subject and f.probe in shaped]
+        parts = [f"[{subject}]《{src.doc(subject).title}》"]
+        parts += [f"事实：{s}" for s in facts] or ["要点：无可核查关键事实（背景性内容）"]
+        return "；".join(parts), (subject,)
+
+    runner = SubagentRunner(worker, window_tokens=sub_window_tokens, tokenizer=tk)
+    main_ledger = WindowLedger(tokenizer=tk, limit=WINDOW_LIMIT_TOKENS)
+    tokens_billed = 0
+    skipped: list[str] = []
+    steer_applied_at = None
+
+    def layered_system_for(query: str) -> str:
+        nonlocal tokens_billed
+        sys_text, _bd = build_layered_system(
+            _CORE_SYSTEM, query=query, loader=loader,
+            memory_index=mf.load_index(memory_base))
+        return sys_text
+
+    def study_session(ws: Workspace, doc_queue: list[str], stop_after: int | None,
+                      total_done_offset: int) -> tuple[list[str], bool]:
+        """跑一段会话：返回（剩余队列, 是否到会话边界）。"""
+        nonlocal tokens_billed, skipped, steer_applied_at
+        queue = list(doc_queue)
+        done_in_session = 0
+        while queue:
+            step_no = total_done_offset + done_in_session
+            plan, applied, _cancel = steering.poll_safepoint(
+                ws.read_plan(), f"第 {step_no} 源完成后")
+            if applied:
+                ws.write_plan(plan)
+            if any(a["kind"] == steering.KIND_STEER for a in applied):
+                steer_applied_at = step_no
+                safety = [d for d in queue if src.doc(d).category == "safety"]
+                marketing = [d for d in queue if src.doc(d).category == "marketing"]
+                skipped.extend(marketing)
+                queue = safety + [d for d in queue
+                                  if d not in safety and d not in marketing]
+            doc_id = queue.pop(0)
+            full = (ws.read(f"sources/{doc_id}.txt") if ws.has_source(doc_id)
+                    else src.fetch(doc_id))
+            ws.save_source(doc_id, full)
+            result = runner.run(doc_id, full)
+            ws.add_note(doc_id, result.brief())
+            done_in_session += 1
+            conclusions = [ws.read(f"notes/{n}.md") for n in ws.note_names()]
+            recite = ws.recitation_block() if step_no + 1 > SESSION_SPLIT else ""
+            rec = main_ledger.measure(
+                "main-step", system=layered_system_for("跨源深度调研"),
+                task_state=src.catalog_text() + _STUDY_INSTR + recite,
+                history="\n".join(conclusions))
+            tokens_billed += rec.total + result.tokens_billed
+            if steer_after is not None and step_no + 1 == steer_after:
+                steering.submit_instruction(STEERING_INSTRUCTION)
+            if stop_after is not None and done_in_session >= stop_after:
+                return queue, True
+        return [], False
+
+    # ── 会话 1：前 15 源 + 用户偏好写入记忆 ─────────────────────
+    ws1 = Workspace(run_id, workspace_base)
+    ws1.write_plan(f"目标：{TOPIC}——30 源全研、提取关键事实、指出跨源矛盾。")
+    mf.write_memory(mf.MemoryCandidate(
+        name="report-style", description="报告语言与长度偏好（用户会话 1 纠正）",
+        body=f"{PREF_HOOKS[0]}；{PREF_HOOKS[1]}。",
+        mtype=mf.MTYPE_PREFERENCE, triggers="报告,写作,合成,综合"),
+        base_dir=memory_base)
+    remaining, _ = study_session(ws1, list(DOC_IDS), stop_after=SESSION_SPLIT,
+                                 total_done_offset=0)
+
+    # ── 会话边界：进程结束——只有记忆文件与工作区存续 ─────────────
+    # ── 会话 2：attach 工作区 + 记忆召回，续研并合成 ─────────────
+    ws2 = Workspace.attach(run_id, workspace_base)
+    done_count = len(ws2.note_names())
+    study_session(ws2, remaining, stop_after=None, total_done_offset=done_count)
+
+    conclusions = [ws2.read(f"notes/{n}.md") for n in ws2.note_names()]
+    pref_block = mf.recall_block("撰写综合研究报告", base_dir=memory_base)
+    syn_system = layered_system_for("撰写综合研究报告")
+    syn_text = (syn_system + pref_block + ws2.recitation_block()
+                + "\n".join(conclusions) + _SYNTHESIS_INSTR)
+    syn_rec = main_ledger.measure("synthesis", system=syn_system,
+                                  task_state=_SYNTHESIS_INSTR + pref_block
+                                  + ws2.recitation_block(),
+                                  history="\n".join(conclusions))
+    tokens_billed += syn_rec.total
+    hits, missing = presence(syn_text)
+    prefs_present = all(p in syn_text for p in PREF_HOOKS)
+
+    return {
+        "mode": "v5-full",
+        "completed_sources": len(ws2.note_names()),
+        "skipped_by_instruction": skipped,
+        "steer_applied_at": steer_applied_at,
+        "main_peak_tokens": main_ledger.peak(),
+        "presence": f"{hits}/{len(KEY_FACTS)}",
+        "presence_hits": hits,
+        "missing_facts": missing,
+        "contradiction_discoverable": contradiction_discoverable(syn_text),
+        "prefs_present_across_sessions": prefs_present,
+        "compactions": 0,
+        "tokens_billed": tokens_billed,
+        "total_fetches": src.total_fetches,
+        "zone_counts": main_ledger.summary()["zone_counts"],
     }

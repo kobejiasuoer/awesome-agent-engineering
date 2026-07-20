@@ -40,5 +40,9 @@ portfolio-projects/knowledge-base-qa/vision_cache/
 data/multimodal_docs/clips/
 # 语音入口：L07 的样例音频（每台机器自己生成）
 data/multimodal_docs/voice_samples/
+# Harness 课程运行产物（长途任务工作区/操作记忆文件，每台机器自己生成；
+# steering/账本等 sqlite 已被下方 *.db 兜住）
+portfolio-projects/research-assistant/workspace/
+portfolio-projects/research-assistant/memory_files/
 *.db
 *.db-journal

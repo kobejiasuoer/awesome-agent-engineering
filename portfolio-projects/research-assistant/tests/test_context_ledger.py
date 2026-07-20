@@ -119,18 +119,20 @@ async def _run_researcher(fake_llm_cls, monkeypatch, search_text: str):
     return await researcher({"subtopic": "测试子题"})
 
 
-async def test_nodes_disabled_by_default(fake_llm, monkeypatch):
+def test_nodes_disabled_by_default(fake_llm, monkeypatch):
     """开关关（默认）：跑完节点，账本一条记录都没有（零介入）。"""
-    result = await _run_researcher(fake_llm, monkeypatch, "[资料] 内容" * 50)
+    import asyncio
+    result = asyncio.run(_run_researcher(fake_llm, monkeypatch, "[资料] 内容" * 50))
     assert result["findings"]
     assert cl.get_ledger() is None
 
 
-async def test_nodes_enabled_records_researcher(fake_llm, monkeypatch):
+def test_nodes_enabled_records_researcher(fake_llm, monkeypatch):
     """开关开：researcher 记账且 tool_results 桶拿到检索材料的大头。"""
+    import asyncio
     monkeypatch.setitem(settings.__dict__, "enable_context_ledger", True)
     cl.reset_ledger()
-    await _run_researcher(fake_llm, monkeypatch, "[资料] 检索材料正文" * 100)
+    asyncio.run(_run_researcher(fake_llm, monkeypatch, "[资料] 检索材料正文" * 100))
     led = cl.get_ledger()
     assert led is not None and len(led.records) == 1
     rec = led.records[0]

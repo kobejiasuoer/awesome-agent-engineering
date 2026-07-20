@@ -129,28 +129,31 @@ async def _run_researcher(monkeypatch, fat_text: str) -> str:
     return llm.last_prompt
 
 
-async def test_researcher_shapes_fat_result(monkeypatch):
+def test_researcher_shapes_fat_result(monkeypatch):
     """开=肥检索结果被截断且标记进 prompt（在场率之外窗口立省）。"""
+    import asyncio
     monkeypatch.setitem(settings.__dict__, "enable_tool_shaping", True)
     monkeypatch.setitem(settings.__dict__, "tool_result_max_tokens", 200)
     fat = "[检索结果] 资料正文。" * 500                  # ≈1500 tok
-    prompt = await _run_researcher(monkeypatch, fat)
+    prompt = asyncio.run(_run_researcher(monkeypatch, fat))
     assert "已截断" in prompt and "原文共" in prompt
     assert len(prompt) < len(fat)
 
 
-async def test_researcher_untouched_when_disabled(monkeypatch):
+def test_researcher_untouched_when_disabled(monkeypatch):
     """关（默认）=检索结果全文直给，prompt 与现状逐字节一致。"""
+    import asyncio
     fat = "[检索结果] 资料正文。" * 500
-    prompt = await _run_researcher(monkeypatch, fat)
+    prompt = asyncio.run(_run_researcher(monkeypatch, fat))
     assert fat in prompt and "已截断" not in prompt
 
 
-async def test_researcher_small_result_not_marked(monkeypatch):
+def test_researcher_small_result_not_marked(monkeypatch):
     """开了开关但结果在预算内：原样放行（不该有标记）。"""
+    import asyncio
     monkeypatch.setitem(settings.__dict__, "enable_tool_shaping", True)
     small = "[检索结果] 短资料。"
-    prompt = await _run_researcher(monkeypatch, small)
+    prompt = asyncio.run(_run_researcher(monkeypatch, small))
     assert small in prompt and "已截断" not in prompt
 
 
