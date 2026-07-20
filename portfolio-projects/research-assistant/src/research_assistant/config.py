@@ -327,6 +327,16 @@ class Settings(BaseSettings):
     # 单条工具结果的 token 预算（超了截断加显式标记）
     tool_result_max_tokens: int = 600
 
+    # ── 子代理隔离（Harness L05 · 过程隔离，结论回传）─────────────
+    # 注意力杠杆：过程在子窗口烧（独立 WindowLedger，enforce 物理预算），
+    # 主窗口只收结构化结论。红线：失败结构化回传（ok=False+原因），
+    # 绝不装作空结论——「子代理失败 ≠ 空结论」。
+    # v4 researcher 已隐式做对「回传结论不回传过程」；本模块把它变成显式
+    # 契约。运行时集成在长程模式（eval 已接，v5/L09 接管）。默认关。
+    enable_subagent_isolation: bool = False
+    # 子代理的窗口份额（token）——它的全部空间，超了结构化失败
+    subagent_window_tokens: int = 4000
+
 
 @lru_cache
 def get_settings() -> Settings:
