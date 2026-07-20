@@ -296,6 +296,17 @@ class Settings(BaseSettings):
     # >85% danger / >100% over）与越限判断的分母
     window_limit_tokens: int = 8000
 
+    # ── 压缩（Harness L02 · 有损但有纪律）────────────────────────
+    # 三步纪律：登记（must-survive 机械保留）→ 摘要（判断交给模型）→
+    # 验证（纪律交给代码）；每次压缩留审计行——无痕压缩=篡史。
+    # 运行时集成在 v5 长途模式（L09）；模块本身随时可独立调用（eval 已接）。
+    # 默认关：主链路行为零差异。
+    enable_compaction: bool = False
+    # 触发水位：进警戒区就压（占 window_limit 比例）
+    compact_threshold_pct: float = 0.60
+    # 压缩目标：压到该水位以下（给后续增长留余量）
+    compact_target_pct: float = 0.50
+
 
 @lru_cache
 def get_settings() -> Settings:
