@@ -19,6 +19,8 @@ from .config import settings
 from .step_budget import step_delta as _step_delta
 # AgentOps L02：轨迹级成本预算（token_delta 记 token，record_call 给子图节点用）
 from .cost_budget import token_delta as _token_delta, record_call as _record_call
+# Harness L01：上下文账本（窗口空间记账，纯测量不拦截；默认关零行为差异）
+from .context_ledger import measure_call as _ledger_measure
 
 log = get_logger("nodes")
 
@@ -104,10 +106,12 @@ def make_split(fast_llm):
         if settings.enable_incremental_run and focus:
             return {"subtopics": [f.strip() for f in focus if f.strip()][:8]}
 
-        resp = fast_llm.invoke(
+        prompt = (
             f"你是研究规划师。把「{topic}」拆成 {n} 个具体、可独立检索的研究子问题，"
             f"每行一个，只要问题本身，不要编号。"
         )
+        _ledger_measure("split", task_state=prompt)
+        resp = fast_llm.invoke(prompt)
         _record_call("split", resp)  # AgentOps L02：记 token（子图无 state 字段，只记 tracker）
         # 清理编号/空白，取前 n 个
         subs = [
@@ -234,15 +238,22 @@ def make_researcher(fast_llm):
                     f"\n\n已确认的历史结论（不要重复研究）：\n{prior}\n"
                     f"只提炼新信息；若新信息与上述结论矛盾，用「更正：」开头明确指出。"
                 )
-            resp = fast_llm.invoke(
+            instr = (
                 f"你是研究员。针对子问题「{subtopic}」，基于以下搜索资料，"
-                f"提炼 2-3 句核心发现（不要照抄，要提炼）：\n\n{search_raw}{memory_instr}{prior_instr}"
+                f"提炼 2-3 句核心发现（不要照抄，要提炼）：\n\n"
             )
+            # Harness L01 四桶口径：指令进 task_state，检索材料进 tool_results，
+            # 记忆/旧结论（过往产出）进 history——工具结果是不是大头，账本说了算
+            _ledger_measure("researcher", task_state=instr, tool_results=search_raw,
+                            history=memory_instr + prior_instr)
+            resp = fast_llm.invoke(f"{instr}{search_raw}{memory_instr}{prior_instr}")
             _record_call("researcher", resp)  # AgentOps L02
             finding = f"【{subtopic}】\n  发现：{resp.content.strip()}\n  来源：{source_tag}"
         else:
             # 搜索兜底：LLM 基于自身知识回答（标注无来源，诚实降级）
-            resp = fast_llm.invoke(f"用 2-3 句话回答：{subtopic}")
+            fallback_prompt = f"用 2-3 句话回答：{subtopic}"
+            _ledger_measure("researcher", task_state=fallback_prompt)
+            resp = fast_llm.invoke(fallback_prompt)
             _record_call("researcher", resp)  # AgentOps L02
             finding = f"【{subtopic}】\n  发现：{resp.content.strip()}\n  来源：模型知识（联网搜索暂不可用）"
 
@@ -256,10 +267,13 @@ def make_summarize(smart_llm):
     @timed_node
     def summarize(state: ResearchState) -> dict:
         all_findings = "\n\n".join(state["findings"])
-        resp = smart_llm.invoke(
+        instr = (
             f"你是研究综合分析师。把以下 {len(state['findings'])} 个研究发现，"
-            f"整理成一段连贯、有逻辑的研究摘要（300字以内）：\n\n{all_findings}"
+            f"整理成一段连贯、有逻辑的研究摘要（300字以内）：\n\n"
         )
+        # Harness L01：findings 是过往轮次的产出——进 history 桶
+        _ledger_measure("summarize", task_state=instr, history=all_findings)
+        resp = smart_llm.invoke(f"{instr}{all_findings}")
         _record_call("summarize", resp)  # AgentOps L02
         return {"research_summary": resp.content.strip()}
 
@@ -348,24 +362,34 @@ def make_writer(smart_llm):
             if skill_text:
                 log.info(f"writer 加载 skill：{skill_loader.match_skills(match_query)}")
 
-        prompt = (
+        instr = (
             f"你是专业研究报告撰写者。基于以下研究摘要，写一份结构化研究报告，"
-            f"包含【概述】和【核心要点（3-5条）】，语言专业简洁：\n\n{summary}"
+            f"包含【概述】和【核心要点（3-5条）】，语言专业简洁：\n\n"
         )
+        prompt = instr + summary
+        skill_seg = ""
         if skill_text:
-            prompt += f"\n\n📋 参考技能规范（请遵循其格式要求）：\n{skill_text}"
+            skill_seg = f"\n\n📋 参考技能规范（请遵循其格式要求）：\n{skill_text}"
+            prompt += skill_seg
+        extra_seg = ""
         if feedback:
-            prompt += f"\n\n⚠️ 审稿反馈（请据此改进）：{feedback}"
+            seg = f"\n\n⚠️ 审稿反馈（请据此改进）：{feedback}"
+            prompt += seg
+            extra_seg += seg
 
         # Frontier L05：如果有冲突修正，要求在报告中写修正说明
         conflicts = state.get("conflicts", [])
         if conflicts:
             conflict_text = "\n".join(f"  - {c}" for c in conflicts)
-            prompt += (
+            seg = (
                 f"\n\n📝 修正说明（请在报告中附「修正说明」部分，"
                 f"说明旧结论/新证据/为何采信新的）：\n{conflict_text}"
             )
+            prompt += seg
+            extra_seg += seg
 
+        # Harness L01：指令与加载的 skill 进 task_state；摘要/反馈/冲突（过往产出）进 history
+        _ledger_measure("writer", task_state=instr + skill_seg, history=summary + extra_seg)
         resp = smart_llm.invoke(prompt)
         report = resp.content.strip()
         # AgentOps L02：记本次 writer 的 token（含 cost_mode 判断）
@@ -521,12 +545,15 @@ def make_reviewer(smart_llm):
                 **_step_delta("reviewer", "rewrite_limit"),
             }
 
-        resp = smart_llm.invoke(
+        head = (
             f"你是严格的研究报告审稿人。评估以下报告是否合格，"
             f"判断标准：结构完整（有概述+要点）、信息量充足、表述专业。\n\n"
-            f"报告：\n{report}\n\n"
-            f"只回复一个词：合格 或 不合格。若不合格，另起一行用一句话说明问题。"
+            f"报告：\n"
         )
+        tail = "\n\n只回复一个词：合格 或 不合格。若不合格，另起一行用一句话说明问题。"
+        # Harness L01：待审报告是过往产出——进 history 桶
+        _ledger_measure("reviewer", task_state=head + tail, history=report)
+        resp = smart_llm.invoke(f"{head}{report}{tail}")
         _tok = _token_delta("reviewer", resp)  # AgentOps L02
         content = resp.content.strip()
 

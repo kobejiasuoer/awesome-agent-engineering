@@ -33,7 +33,18 @@
 """
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
+from pathlib import Path
+
+# 让本模块无论从仓库根/项目根/课程目录跑都能 import research_assistant
+_PROJ = Path(__file__).resolve().parent.parent
+if str(_PROJ / "src") not in sys.path:
+    sys.path.insert(0, str(_PROJ / "src"))
+
+# Tokenizer 协议与 FakeTokenizer 的规范住所是 context_ledger（L01）——
+# eval 与主链路用同一把尺子，数字才可对账（此处 re-export 供旧调用方使用）
+from research_assistant.context_ledger import FakeTokenizer  # noqa: E402, F401
 
 # ── 任务常量 ─────────────────────────────────────────────────
 TOPIC = "Agent 运行时与框架生态深度调研"
@@ -44,19 +55,6 @@ STEERING_AT = 10                 # 第 10 源完成后投递改道指令
 STEERING_INSTRUCTION = "优先研究 safety（运行时安全）类信源；跳过 marketing（营销通稿）类信源。"
 # 会话 1 里用户给出的操作偏好（跨会话必须记得——L03 试金石）
 PREF_HOOKS = ("报告必须用中文撰写", "报告正文控制在 500 字以内")
-
-
-class FakeTokenizer:
-    """假 tokenizer：token ≈ len(text)//4，确定性、零依赖。
-
-    与「可注入时钟」同一地位（课程十一的命根子）：真 tokenizer 慢、模型绑定、
-    CI 不友好；「窗口够不够」的判断必须走可注入的计数器，测试才可复现。
-    口径与 cost_budget 现有估算（字符/4）一致。L01 将把 Tokenizer 协议
-    晋升进 src/research_assistant/context_ledger.py，本模块届时改为复用。
-    """
-
-    def count(self, text: str) -> int:
-        return max(1, len(text) // 4)
 
 
 # ── 关键事实 ─────────────────────────────────────────────────

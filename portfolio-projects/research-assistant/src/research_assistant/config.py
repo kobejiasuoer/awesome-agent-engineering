@@ -284,6 +284,18 @@ class Settings(BaseSettings):
     enable_heartbeat: bool = False
     absence_alert_hours: float = 6.0
 
+    # ── 上下文账本（Harness L01 · 第四种预算：空间）──────────────
+    # 三层钱包（请求/轨迹/时段）之后的空间预算：钱管「烧多少」，空间管
+    # 「窗口里装什么」——花得起钱也可能装不下。启用后主链路每次 LLM 调用前
+    # 把 prompt 拆四桶记账（system/task_state/tool_results/history），
+    # 纯测量不拦截（enforce 仅 eval 模拟物理约束用）。tokenizer 可注入
+    # （FakeTokenizer len//4，与 cost_budget 估算同口径），测试确定可复现。
+    # 默认关：不记账，行为零差异。
+    enable_context_ledger: bool = False
+    # 假窗口物理限制（token）：水位三区（<60% safe / 60-85% caution /
+    # >85% danger / >100% over）与越限判断的分母
+    window_limit_tokens: int = 8000
+
 
 @lru_cache
 def get_settings() -> Settings:
