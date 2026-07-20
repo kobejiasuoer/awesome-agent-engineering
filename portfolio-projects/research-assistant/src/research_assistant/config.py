@@ -357,6 +357,14 @@ class Settings(BaseSettings):
     # 权限门的花费保险丝（预估 token 超过即需审批）
     tool_gate_cost_threshold: int = 10000
 
+    # ── 三层指令架构（Harness L08 · 渐进披露收口）─────────────────
+    # 扩展 frontier-L03 的 skill_loader（复用 enable_skills 与 skills/ 目录，
+    # 不新建模块）：常驻核心 / 索引层（skill 目录+记忆索引+工作区指针）/
+    # 按需层（命中的 skill 正文）——「可能有用」和「此刻在场」分开计价。
+    # writer 单点路径保持现状；本开关供长程模式的 system 组装（v5/L09）。
+    # 默认关：零差异。
+    enable_layered_system: bool = False
+
 
 @lru_cache
 def get_settings() -> Settings:

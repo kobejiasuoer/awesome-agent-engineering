@@ -222,3 +222,74 @@ def get_skill_loader() -> SkillLoader | None:
     if _skill_loader is None:
         _skill_loader = SkillLoader()
     return _skill_loader
+
+
+# ════════════════════════════════════════════════════════════
+# Harness L08 · 三层指令架构（扩展 frontier-L03 资产，不另起炉灶）
+# ════════════════════════════════════════════════════════════
+def build_layered_system(core: str, *, query: str = "",
+                         loader: SkillLoader | None = None,
+                         memory_index: str = "",
+                         workspace_pointers: str = "",
+                         tokenizer=None) -> tuple[str, dict]:
+    """三层指令架构组装：常驻核心 / 索引层 / 按需层。
+
+    常驻核心   身份+红线——永远在（L02 分层可压性里 system 不可压的那部分）
+    索引层     skill 目录（每技能一行）+ 记忆索引（L03）+ 工作区指针（L06）
+               ——便宜常驻：把「可能有用」挂在墙上
+    按需层     只有本任务命中的 skill 正文——「此刻在场」才付全文租金
+
+    与 L03 的同构在此收口：记忆是**学到的**（agent 写），skill 是**配置的**
+    （人写）——同一套「索引常驻、正文按需」机制的两种内容。
+    判断与纪律：哪些 skill 该加载可交模型判（match_skills 可换 LLM 判断）；
+    分层结构与逐层计量（账本口径）是代码的纪律。
+
+    返回 (system_text, breakdown)：breakdown 含三层各自 token 与命中清单。
+    loader=None（enable_skills 关）时索引/按需层的 skill 部分为空——零介入。
+    运行时消费方：长程单窗模式（eval/v5）；writer 单点路径保持现状不动。
+    """
+    from .context_ledger import FakeTokenizer
+    tk = tokenizer or FakeTokenizer()
+
+    index_parts: list[str] = []
+    matched: list[str] = []
+    ondemand = ""
+    if loader is not None:
+        desc = loader.format_skill_descriptions()
+        if desc:
+            index_parts.append(desc)
+        matched = loader.match_skills(query) if query else []
+        if matched:
+            ondemand = loader.load_matched_skills(query)
+    if memory_index:
+        index_parts.append(memory_index)
+    if workspace_pointers:
+        index_parts.append(workspace_pointers)
+
+    index_text = "\n".join(index_parts)
+    system_text = core
+    if index_text:
+        system_text += f"\n\n{index_text}"
+    if ondemand:
+        system_text += f"\n\n【本任务已加载技能全文】\n{ondemand}"
+
+    breakdown = {
+        "core_tokens": tk.count(core) if core else 0,
+        "index_tokens": tk.count(index_text) if index_text else 0,
+        "ondemand_tokens": tk.count(ondemand) if ondemand else 0,
+        "matched_skills": matched,
+    }
+    return system_text, breakdown
+
+
+def monolithic_system(core: str, loader: SkillLoader | None,
+                      tokenizer=None) -> tuple[str, int]:
+    """单体注入对照组：全部 skill 正文一次性常驻（指令膨胀的现状形态）。"""
+    from .context_ledger import FakeTokenizer
+    tk = tokenizer or FakeTokenizer()
+    bodies = ""
+    if loader is not None:
+        bodies = "\n\n".join(loader.load_skill(m.name)
+                             for m in loader.list_skills())
+    text = core + (f"\n\n{bodies}" if bodies else "")
+    return text, tk.count(text)
