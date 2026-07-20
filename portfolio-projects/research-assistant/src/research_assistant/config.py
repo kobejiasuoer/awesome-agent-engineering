@@ -317,6 +317,16 @@ class Settings(BaseSettings):
     # 记忆文件目录（相对运行目录；测试用 tmp_path 注入）
     memory_files_dir: str = "memory_files"
 
+    # ── 工具返回值整形（Harness L04 · 控源胜于止损）───────────────
+    # 账本证明工具结果是窗口最大消耗方——压缩是止损，整形是控源。
+    # 启用后 researcher 的检索结果超预算即截断，**省略必须显式**
+    # （标记注明省略多少字/原文多长/怎么拿全文）——静默掐尾会让模型
+    # 把半篇当全篇引用。分页/引用板斧供显式调用（L06 工作区接管落盘）。
+    # 默认关：检索结果全文直给，行为零差异。
+    enable_tool_shaping: bool = False
+    # 单条工具结果的 token 预算（超了截断加显式标记）
+    tool_result_max_tokens: int = 600
+
 
 @lru_cache
 def get_settings() -> Settings:

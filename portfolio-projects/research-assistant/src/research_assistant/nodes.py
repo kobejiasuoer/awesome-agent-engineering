@@ -222,6 +222,13 @@ def make_researcher(fast_llm):
                 "failed_subtopics": [failed_subtopic],
             }
 
+        # ── 工具返回值整形（Harness L04）────────────────────────
+        # 控源胜于止损：肥检索结果进 prompt 前过整形（超预算截断+显式省略标记）。
+        # 关态零差异；开态纯截断无文件副作用（引用板斧由 L06 工作区接管）。
+        if settings.enable_tool_shaping and search_raw:
+            from .tool_shaping import shape_result
+            search_raw = shape_result(search_raw)
+
         # 判断是否拿到有效素材
         has_source = "没有返回结果" not in search_raw and "失败" not in search_raw and "超时" not in search_raw
 
