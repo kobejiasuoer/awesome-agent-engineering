@@ -32,8 +32,8 @@ from research_assistant.subagent import SubagentRunner  # noqa: E402
 from research_assistant.tool_shaping import shape_result  # noqa: E402
 
 from eval_agent.long_haul import (  # noqa: E402
-    DOC_IDS, KEY_FACTS, N_SOURCES, SYSTEM_PROMPT, WINDOW_LIMIT_TOKENS,
-    LongHaulSource, contradiction_discoverable, presence,
+    DOC_IDS, KEY_FACTS, N_SOURCES, SESSION_SPLIT, SYSTEM_PROMPT, TOPIC,
+    WINDOW_LIMIT_TOKENS, LongHaulSource, contradiction_discoverable, presence,
 )
 
 _STUDY_INSTR = "请研读下一篇文档并记录要点。"
@@ -211,4 +211,108 @@ def run_isolated_longhaul(*, sub_window_tokens: int | None = None,
         "compactions": 0,
         "tokens_billed": tokens_billed,
         "total_fetches": src.total_fetches,
+    }
+
+
+def run_workspace_longhaul(*, workspace_base, run_id: str = "longhaul-demo",
+                           crash_at: int | None = None,
+                           sub_window_tokens: int = 4000,
+                           window_limit: int = WINDOW_LIMIT_TOKENS,
+                           tokenizer: FakeTokenizer | None = None) -> dict:
+    """长程主窗 + 子代理 + 文件工作区：L06 的主角跑法。
+
+    在 L05 隔离档之上加三件：
+        ①原文无损落盘（sources/）——fetch 一次终身可回读，重复 fetch=0
+        ②结论落笔记（notes/）——「有笔记=已研完」是断点续跑的进度事实源
+        ③后半程 recitation——每步现读 plan.md 进窗口尾部（对抗漂移）
+    crash_at=k：第 k 源后模拟进程死亡，随即「新进程」attach 同一工作区续跑
+    ——fetch 总数仍为 30（无工作区的重启=前功尽弃，fetch=crash_at+30）。
+    """
+    from research_assistant.workspace import Workspace
+
+    tk = tokenizer or FakeTokenizer()
+    src = LongHaulSource()                     # 跨「进程」共享=fetch 计数器连续
+    recitations = 0
+    pointer_chars = 0
+    full_chars = 0
+
+    def worker(subject, payload, ledger):
+        ledger.measure("sub-study", system=_WORKER_INSTR, tool_results=payload)
+        facts = [f.statement for f in KEY_FACTS
+                 if f.doc_id == subject and f.probe in payload]
+        title = src.doc(subject).title
+        parts = [f"[{subject}]《{title}》"] + [f"事实：{s}" for s in facts]
+        if not facts:
+            parts.append("要点：无可核查关键事实（背景性内容）")
+        return "；".join(parts), (subject,)
+
+    runner = SubagentRunner(worker, window_tokens=sub_window_tokens, tokenizer=tk)
+
+    def process(ws: Workspace, main_ledger: WindowLedger, stop_after: int | None):
+        nonlocal recitations, pointer_chars, full_chars
+        billed = 0
+        done = set(ws.note_names())            # 进度事实源：有笔记=已研完
+        for no, doc_id in enumerate(DOC_IDS, start=1):
+            if doc_id in done:
+                continue
+            if ws.has_source(doc_id):          # 原文已落盘：回读，不重 fetch
+                full = ws.read(f"sources/{doc_id}.txt")
+            else:
+                full = src.fetch(doc_id)
+                ws.save_source(doc_id, full)
+            pointer_chars += len(ws.pointer(f"sources/{doc_id}.txt"))
+            full_chars += len(full)
+            result = runner.run(doc_id, full)
+            ws.add_note(doc_id, result.brief())
+            recite = ws.recitation_block() if no > SESSION_SPLIT else ""
+            if recite:
+                recitations += 1
+            conclusions = [ws.read(f"notes/{n}.md") for n in ws.note_names()]
+            rec = main_ledger.measure(
+                "main-step", system=SYSTEM_PROMPT,
+                task_state=src.catalog_text() + _STUDY_INSTR + recite,
+                history="\n".join(conclusions))
+            billed += rec.total + result.tokens_billed
+            if stop_after is not None and no >= stop_after:
+                return billed, True            # 模拟进程死亡
+        return billed, False
+
+    ws1 = Workspace(run_id, workspace_base)
+    ws1.write_plan(f"目标：{TOPIC}——30 源全研、提取关键事实、指出跨源矛盾。\n"
+                   f"改道后以最新计划为准（L07）。")
+    main_ledger = WindowLedger(tokenizer=tk, limit=window_limit, enforce=False)
+    tokens_billed, crashed = process(ws1, main_ledger, crash_at)
+    if crashed:
+        ws2 = Workspace.attach(run_id, workspace_base)     # 新进程：挂载工作区
+        more, _ = process(ws2, main_ledger, None)
+        tokens_billed += more
+        ws_final = ws2
+    else:
+        ws_final = ws1
+
+    conclusions = [ws_final.read(f"notes/{n}.md") for n in ws_final.note_names()]
+    syn_text = (SYSTEM_PROMPT + ws_final.recitation_block()
+                + "\n".join(conclusions) + _SYNTHESIS_INSTR)
+    syn_rec = main_ledger.measure("synthesis", system=SYSTEM_PROMPT,
+                                  task_state=_SYNTHESIS_INSTR + ws_final.recitation_block(),
+                                  history="\n".join(conclusions))
+    tokens_billed += syn_rec.total
+    hits, missing = presence(syn_text)
+    ws_final.write_draft(f"（合成草稿）关键事实在场 {hits}/{len(KEY_FACTS)}。")
+
+    return {
+        "mode": f"workspace(crash_at={crash_at})",
+        "completed_sources": len(ws_final.note_names()),
+        "crashed_and_resumed": crashed,
+        "main_peak_tokens": main_ledger.peak(),
+        "presence": f"{hits}/{len(KEY_FACTS)}",
+        "presence_hits": hits,
+        "contradiction_discoverable": contradiction_discoverable(syn_text),
+        "recitations": recitations,
+        "total_fetches": src.total_fetches,
+        "refetch_waste_without_ws": (crash_at + N_SOURCES) if crash_at else N_SOURCES,
+        "pointer_chars": pointer_chars,
+        "full_chars": full_chars,
+        "tokens_billed": tokens_billed,
+        "workspace_tree": ws_final.tree().splitlines()[:8],
     }

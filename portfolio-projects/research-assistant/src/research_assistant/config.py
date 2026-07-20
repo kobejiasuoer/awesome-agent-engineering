@@ -337,6 +337,16 @@ class Settings(BaseSettings):
     # 子代理的窗口份额（token）——它的全部空间，超了结构化失败
     subagent_window_tokens: int = 4000
 
+    # ── 文件工作区（Harness L06 · 文件即工作记忆）─────────────────
+    # 窗口=RAM、文件=磁盘：工作集（计划/原文/笔记/草稿）住 workspace/<run_id>/，
+    # State/窗口只留一行指针，按需读回（回读过 L04 整形）。三存储各管一段：
+    # checkpoint=状态快照（机器读）/ ledger=进度语义 / workspace=认知外置
+    # （人机共读写）。recitation：后半程现读 plan.md 进窗口尾部对抗漂移。
+    # 运行时集成在长程模式（eval 已接，v5/L09 接管）。默认关：零差异。
+    enable_workspace: bool = False
+    # 工作区根目录（相对运行目录；测试用 tmp_path 注入）
+    workspace_dir: str = "workspace"
+
 
 @lru_cache
 def get_settings() -> Settings:
