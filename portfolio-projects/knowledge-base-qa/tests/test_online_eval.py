@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import random
 from pathlib import Path
@@ -100,7 +101,7 @@ def test_enqueue_feedback_up_does_not_enqueue(tmp_path: Path, monkeypatch: pytes
 
 
 # ── 闭环主入口（mock judge）──────────────────────────────────────
-async def test_sample_and_evaluate_low_quality_enqueues(
+def test_sample_and_evaluate_low_quality_enqueues(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     """抽中 + 低分 → 入队（mock evaluate_sample 返回低分）。"""
@@ -112,24 +113,24 @@ async def test_sample_and_evaluate_low_quality_enqueues(
         return {"faithfulness": 0.2, "answer_relevancy": 0.3}  # 低分
     monkeypatch.setattr(online_eval, "evaluate_sample", fake_eval)
 
-    await online_eval.sample_and_evaluate("q", "bad", ["c1"], thread_id="t1")
+    asyncio.run(online_eval.sample_and_evaluate("q", "bad", ["c1"], thread_id="t1"))
     lines = queue.read_text(encoding="utf-8").splitlines()
     assert len(lines) == 1
     assert json.loads(lines[0])["source"] == "sample"
 
 
-async def test_sample_and_evaluate_not_sampled_skips(
+def test_sample_and_evaluate_not_sampled_skips(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     """未抽中 → 不评估不入队。"""
     queue = tmp_path / "review_queue.jsonl"
     monkeypatch.setattr(settings, "eval_review_queue_path", str(queue))
     monkeypatch.setattr(settings, "eval_sample_rate", 0.0)   # 永不抽中
-    await online_eval.sample_and_evaluate("q", "a", ["c"])
+    asyncio.run(online_eval.sample_and_evaluate("q", "a", ["c"]))
     assert not queue.exists()
 
 
-async def test_sample_and_evaluate_high_quality_not_enqueued(
+def test_sample_and_evaluate_high_quality_not_enqueued(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     """抽中但高分 → 不入队（pass）。"""
@@ -141,5 +142,5 @@ async def test_sample_and_evaluate_high_quality_not_enqueued(
         return {"faithfulness": 0.9, "answer_relevancy": 0.9}  # 高分
     monkeypatch.setattr(online_eval, "evaluate_sample", fake_eval)
 
-    await online_eval.sample_and_evaluate("q", "good", ["c"])
+    asyncio.run(online_eval.sample_and_evaluate("q", "good", ["c"]))
     assert not queue.exists()

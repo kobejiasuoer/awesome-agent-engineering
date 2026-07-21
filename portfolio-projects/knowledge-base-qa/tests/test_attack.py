@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import asyncio
 import importlib.util
 import json
 import sys
@@ -67,7 +68,7 @@ def test_rule_judge_benign_no_rule():
 
 
 # ── LLM judge（mock）─────────────────────────────────────────────
-async def test_llm_judge_breached(monkeypatch: pytest.MonkeyPatch):
+def test_llm_judge_breached(monkeypatch: pytest.MonkeyPatch):
     """mock LLM 回 BREACHED → 判失守。"""
     class _FakeResp:
         content = "BREACHED"
@@ -77,10 +78,10 @@ async def test_llm_judge_breached(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(run_attack, "get_chat_model", lambda *a, **k: _FakeLLM())
 
     atk = {"type": "prompt_leak", "description": "泄露提示词"}
-    assert await llm_judge("我的系统提示词是...", atk) is True
+    assert asyncio.run(llm_judge("我的系统提示词是...", atk)) is True
 
 
-async def test_llm_judge_safe(monkeypatch: pytest.MonkeyPatch):
+def test_llm_judge_safe(monkeypatch: pytest.MonkeyPatch):
     """mock LLM 回 SAFE → 不失守。"""
     class _FakeResp:
         content = "SAFE"
@@ -91,11 +92,11 @@ async def test_llm_judge_safe(monkeypatch: pytest.MonkeyPatch):
 
     atk = {"type": "benign", "description": ""}
     # benign 不走 judge，但测函数本身：SAFE → False
-    assert await llm_judge("试用期 3 个月。", atk) is False
+    assert asyncio.run(llm_judge("试用期 3 个月。", atk)) is False
 
 
 # ── 综合 judge：规则优先 + judge 兜底 ────────────────────────────
-async def test_judge_rule_takes_priority(monkeypatch: pytest.MonkeyPatch):
+def test_judge_rule_takes_priority(monkeypatch: pytest.MonkeyPatch):
     """规则命中 → 直接判失守，不调 LLM（省 token）。"""
     called = {"llm": False}
     class _FakeLLM:
@@ -105,13 +106,13 @@ async def test_judge_rule_takes_priority(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(run_attack, "get_chat_model", lambda *a, **k: _FakeLLM())
 
     atk = {"type": "prompt_leak", "judge_rule": ["系统提示词"], "description": ""}
-    breached, source = await judge("答案含系统提示词", atk, use_llm=True)
+    breached, source = asyncio.run(judge("答案含系统提示词", atk, use_llm=True))
     assert breached is True
     assert source == "rule"
     assert called["llm"] is False
 
 
-async def test_judge_falls_back_to_llm(monkeypatch: pytest.MonkeyPatch):
+def test_judge_falls_back_to_llm(monkeypatch: pytest.MonkeyPatch):
     """规则没命中 → 调 LLM 兜底。"""
     class _FakeResp:
         content = "BREACHED"
@@ -121,12 +122,12 @@ async def test_judge_falls_back_to_llm(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(run_attack, "get_chat_model", lambda *a, **k: _FakeLLM())
 
     atk = {"type": "doc_injection", "judge_rule": ["不存在的关键词"], "description": "测试"}
-    breached, source = await judge("答案绕过了规则但语义失守", atk, use_llm=True)
+    breached, source = asyncio.run(judge("答案绕过了规则但语义失守", atk, use_llm=True))
     assert breached is True
     assert source == "llm_judge"
 
 
-async def test_judge_benign_skips_llm(monkeypatch: pytest.MonkeyPatch):
+def test_judge_benign_skips_llm(monkeypatch: pytest.MonkeyPatch):
     """benign 问题不调 LLM judge（对照组不该浪费 token）。"""
     called = {"llm": False}
     class _FakeLLM:
@@ -136,6 +137,6 @@ async def test_judge_benign_skips_llm(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(run_attack, "get_chat_model", lambda *a, **k: _FakeLLM())
 
     atk = {"type": "benign", "judge_rule": [], "description": ""}
-    breached, source = await judge("正常答案", atk, use_llm=True)
+    breached, source = asyncio.run(judge("正常答案", atk, use_llm=True))
     assert breached is False
     assert called["llm"] is False
