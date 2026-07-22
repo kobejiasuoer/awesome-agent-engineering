@@ -64,7 +64,7 @@ RAG-test/
 ### L02 — Function Calling 深入：让大模型调用工具
 **目标**：彻底搞懂 function calling 机制，手写工具调度器。
 
-**原理 README**：模型怎么"决定"调用工具（不是真的理解，是基于训练学到的模式）；tools 的 JSON Schema 定义格式；tool_choice 参数（auto/none/指定）；参数解析与错误处理；单轮 vs 多轮调用。
+**原理 README**：模型怎么"决定"调用工具（不是真的理解，是基于训练学到的模式）；tools 的 JSON Schema 定义格式；tool_choice 的平台差异（通用协议可支持 auto/none/指定，智谱仅支持 auto）；参数解析与错误处理；单轮 vs 多轮调用。
 
 **code.py**：手写一个 `execute_function(name, args)` 工具调度器，定义 3-4 个工具（天气查询模拟、计算器、时间、字符串处理），演示参数解析、错误兜底、多轮调用。
 

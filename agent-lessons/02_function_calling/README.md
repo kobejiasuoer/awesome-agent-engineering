@@ -65,7 +65,7 @@ L01 你见过 `TOOLS` 这个列表。每个工具的完整结构：
 
 ## 3. tool_choice：控制模型用不用工具
 
-`tool_choice` 参数控制模型的工具使用行为：
+`tool_choice` 用来控制模型如何选择工具，但**具体支持哪些值取决于模型服务商**。一些兼容 OpenAI 协议的服务支持以下三种策略：
 
 | 值 | 含义 | 适用场景 |
 |----|------|---------|
@@ -73,21 +73,20 @@ L01 你见过 `TOOLS` 这个列表。每个工具的完整结构：
 | `"none"` | 禁止调用工具 | 强制模型直接回答，不借助工具 |
 | `{"type": "function", "function": {"name": "xxx"}}` | 强制调用指定工具 | 测试、或确定必须用某工具时 |
 
+本课程使用的智谱接口目前**默认且仅支持 `"auto"`**，不能把 `"none"` 或指定函数对象传给接口。以服务商的官方文档为准：[智谱工具调用文档](https://docs.bigmodel.cn/cn/guide/capabilities/function-calling)。
+
 ```python
-# 让模型自己决定
+# 智谱支持：让模型自己决定是否调用工具
 client.chat.completions.create(..., tools=TOOLS, tool_choice="auto")
 
-# 禁止用工具（模型会直接基于自身知识回答）
-client.chat.completions.create(..., tools=TOOLS, tool_choice="none")
+# 不允许调用工具：不要向模型提供 tools
+client.chat.completions.create(..., messages=messages)
 
-# 强制必须调用 get_weather
-client.chat.completions.create(
-    ..., tools=TOOLS,
-    tool_choice={"type": "function", "function": {"name": "get_weather"}}
-)
+# 业务流程确定必须执行某个工具时，由应用层直接调度
+result = execute_function("get_weather", {"city": "北京"})
 ```
 
-> ⚠️ `tool_choice="none"` 时，即使你给了 tools，模型也不会调用。这在某些场景有用——比如你只想让模型"知道有这些工具但不强制用"。
+> ⚠️ 应用层直接调度不是 function calling：参数由程序提供，模型没有参与工具选择。如果必须让模型生成参数并强制指定函数，需要改用明确支持 named tool choice 的模型服务。
 
 ---
 
@@ -152,8 +151,8 @@ def execute_function(name, args):
 - 实验 2：故意触发错误（除以 0），看错误怎么被优雅处理并喂回模型
 - 实验 3：多轮调用（一个任务需要多个工具配合）
 
-### ④ 演示 tool_choice
-对比 `auto` 和强制指定工具的效果差异。
+### ④ 理解 tool_choice 的能力边界
+示例按照智谱接口的能力使用 `tool_choice="auto"`。禁用工具时不传 `tools`；智谱不支持强制指定某个函数。
 
 ---
 

@@ -19,6 +19,9 @@ from dotenv import load_dotenv
 from zhipuai import ZhipuAI
 
 CHAT_MODEL = "glm-4"  # 想免费可换 "glm-4-flash"
+# 智谱当前仅支持 auto，不支持 none 或强制指定某个函数。
+# https://docs.bigmodel.cn/cn/guide/capabilities/function-calling
+ZHIPU_TOOL_CHOICE = "auto"
 
 
 def create_client() -> ZhipuAI:
@@ -194,7 +197,7 @@ def run_agent(client: ZhipuAI, user_question: str, max_steps: int = 6) -> str | 
             model=CHAT_MODEL,
             messages=messages,
             tools=TOOLS_SPEC,
-            tool_choice="auto",
+            tool_choice=ZHIPU_TOOL_CHOICE,
         )
         msg = response.choices[0].message
 

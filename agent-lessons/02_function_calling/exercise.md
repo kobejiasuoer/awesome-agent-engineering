@@ -42,23 +42,37 @@ run_agent(client, "帮我从一个空列表里随机选")        # 空列表
 
 ---
 
-## 练习 3：对比 tool_choice 的效果
-在 `run_agent` 里加一个 `tool_choice` 参数，对比三种情况：
+## 练习 3：理解 tool_choice 的平台差异
+
+本课程使用的智谱接口目前仅支持 `tool_choice="auto"`。不要把 `"none"` 或指定函数对象传给接口；下面分别从模型层和应用层观察工具控制的差异。
+
+先运行现有代码，让模型自主决定是否调用工具：
 
 ```python
-# auto：让模型自己决定（默认）
-run_agent(client, "你好", tool_choice="auto")
-
-# none：禁止用工具
-run_agent(client, "现在北京天气怎么样", tool_choice="none")
-# → 模型应该说"我无法获取实时天气"（因为它被禁止调工具）
-
-# 强制调用指定工具
-run_agent(client, "你好", tool_choice={"type":"function","function":{"name":"get_weather"}})
-# → 即使问题无关，模型也被迫调用 get_weather
+# auto：智谱支持的工具选择策略
+run_agent(client, "现在北京天气怎么样")
 ```
 
-**思考**：什么场景下你会想强制调用某个工具？什么场景下想禁止用工具？（提示：强制=你确定必须用它；禁止=你想测试模型的纯知识回答）
+然后给 `run_agent` 增加一个 `enable_tools` 参数。当它为 `False` 时，不向请求传递 `tools` 和 `tool_choice`：
+
+```python
+request = {"model": CHAT_MODEL, "messages": messages}
+if enable_tools:
+    request.update(tools=TOOLS_SPEC, tool_choice="auto")
+response = client.chat.completions.create(**request)
+
+run_agent(client, "现在北京天气怎么样", enable_tools=False)
+# → 请求没有提供工具，模型无法发起 tool_call
+```
+
+最后体验应用层直接调度：
+
+```python
+result = execute_function("get_weather", {"city": "北京"})
+print(result)
+```
+
+**思考**：不传 `tools` 与应用层直接调用分别控制了什么？为什么直接调用不属于 function calling？如果业务要求“由模型生成参数，但必须调用指定函数”，应该先确认什么？
 
 ---
 
@@ -83,6 +97,6 @@ TOOL_REGISTRY["strict_add"] = strict_add
 ## ✅ 完成本课后，你应该能回答
 1. 模型"决定"调用工具，靠的是什么？（提示：不是真懂，是 description 模式匹配）
 2. tools 定义里最关键的三个字段是什么？哪个最容易写错？
-3. tool_choice 有哪三种值？各什么场景用？
+3. 智谱目前支持哪种 tool_choice？如何在应用层禁用或直接调用工具？
 4. 为什么要用 TOOL_REGISTRY（注册表）而不是 if/elif？（提示：开闭原则）
 5. 工具执行失败时，为什么把错误信息喂回模型，比直接崩溃好？
